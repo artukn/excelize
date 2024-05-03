@@ -3,6 +3,7 @@ package excelize
 import (
 	"fmt"
 	_ "image/jpeg"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -133,11 +134,11 @@ func TestCheckCellInRangeRef(t *testing.T) {
 	}
 
 	ok, err := f.checkCellInRangeRef("A1", "A:B")
-	assert.EqualError(t, err, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), err)
 	assert.False(t, ok)
 
 	ok, err = f.checkCellInRangeRef("AA0", "Z0:AB1")
-	assert.EqualError(t, err, newCellNameToCoordinatesError("AA0", newInvalidCellNameError("AA0")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("AA0", newInvalidCellNameError("AA0")), err)
 	assert.False(t, ok)
 }
 
@@ -171,9 +172,29 @@ func TestSetCellFloat(t *testing.T) {
 		assert.Equal(t, "123.42", val, "A1 should be 123.42")
 	})
 	f := NewFile()
-	assert.EqualError(t, f.SetCellFloat(sheet, "A", 123.42, -1, 64), newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), f.SetCellFloat(sheet, "A", 123.42, -1, 64))
 	// Test set cell float data type value with invalid sheet name
-	assert.EqualError(t, f.SetCellFloat("Sheet:1", "A1", 123.42, -1, 64), ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, f.SetCellFloat("Sheet:1", "A1", 123.42, -1, 64))
+}
+
+func TestSetCellUint(t *testing.T) {
+	f := NewFile()
+	assert.NoError(t, f.SetCellValue("Sheet1", "A1", uint8(math.MaxUint8)))
+	result, err := f.GetCellValue("Sheet1", "A1")
+	assert.Equal(t, "255", result)
+	assert.NoError(t, err)
+	assert.NoError(t, f.SetCellValue("Sheet1", "A1", uint(math.MaxUint16)))
+	result, err = f.GetCellValue("Sheet1", "A1")
+	assert.Equal(t, "65535", result)
+	assert.NoError(t, err)
+	assert.NoError(t, f.SetCellValue("Sheet1", "A1", uint(math.MaxUint32)))
+	result, err = f.GetCellValue("Sheet1", "A1")
+	assert.Equal(t, "4294967295", result)
+	assert.NoError(t, err)
+	// Test uint cell value not exists worksheet
+	assert.EqualError(t, f.SetCellUint("SheetN", "A1", 1), "sheet SheetN does not exist")
+	// Test uint cell value with illegal cell reference
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), f.SetCellUint("Sheet1", "A", 1))
 }
 
 func TestSetCellValuesMultiByte(t *testing.T) {
@@ -211,8 +232,8 @@ func TestSetCellValuesMultiByte(t *testing.T) {
 
 func TestSetCellValue(t *testing.T) {
 	f := NewFile()
-	assert.EqualError(t, f.SetCellValue("Sheet1", "A", time.Now().UTC()), newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
-	assert.EqualError(t, f.SetCellValue("Sheet1", "A", time.Duration(1e13)), newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), f.SetCellValue("Sheet1", "A", time.Now().UTC()))
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), f.SetCellValue("Sheet1", "A", time.Duration(1e13)))
 	// Test set cell value with column and row style inherit
 	style1, err := f.NewStyle(&Style{NumFmt: 2})
 	assert.NoError(t, err)
@@ -230,7 +251,7 @@ func TestSetCellValue(t *testing.T) {
 	assert.Equal(t, "0.50", B2)
 
 	// Test set cell value with invalid sheet name
-	assert.EqualError(t, f.SetCellValue("Sheet:1", "A1", "A1"), ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, f.SetCellValue("Sheet:1", "A1", "A1"))
 	// Test set cell value with unsupported charset shared strings table
 	f.SharedStrings = nil
 	f.Pkg.Store(defaultXMLPathSharedStrings, MacintoshCyrillicCharset)
@@ -239,6 +260,23 @@ func TestSetCellValue(t *testing.T) {
 	f.WorkBook = nil
 	f.Pkg.Store(defaultXMLPathWorkbook, MacintoshCyrillicCharset)
 	assert.EqualError(t, f.SetCellValue("Sheet1", "A1", time.Now().UTC()), "XML syntax error on line 1: invalid UTF-8")
+	// Test set cell value with the shared string table's count not equal with unique count
+	f = NewFile()
+	f.SharedStrings = nil
+	f.Pkg.Store(defaultXMLPathSharedStrings, []byte(fmt.Sprintf(`<sst xmlns="%s" count="2" uniqueCount="1"><si><t>a</t></si><si><t>a</t></si></sst>`, NameSpaceSpreadSheet.Value)))
+	f.Sheet.Store("xl/worksheets/sheet1.xml", &xlsxWorksheet{
+		SheetData: xlsxSheetData{Row: []xlsxRow{
+			{R: intPtr(1), C: []xlsxC{{R: "A1", T: "str", V: "1"}}},
+		}},
+	})
+	assert.NoError(t, f.SetCellValue("Sheet1", "A1", "b"))
+	val, err := f.GetCellValue("Sheet1", "A1")
+	assert.NoError(t, err)
+	assert.Equal(t, "b", val)
+	assert.NoError(t, f.SetCellValue("Sheet1", "B1", "b"))
+	val, err = f.GetCellValue("Sheet1", "B1")
+	assert.NoError(t, err)
+	assert.Equal(t, "b", val)
 }
 
 func TestSetCellValues(t *testing.T) {
@@ -261,9 +299,9 @@ func TestSetCellValues(t *testing.T) {
 
 func TestSetCellBool(t *testing.T) {
 	f := NewFile()
-	assert.EqualError(t, f.SetCellBool("Sheet1", "A", true), newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), f.SetCellBool("Sheet1", "A", true))
 	// Test set cell boolean data type value with invalid sheet name
-	assert.EqualError(t, f.SetCellBool("Sheet:1", "A1", true), ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, f.SetCellBool("Sheet:1", "A1", true))
 }
 
 func TestSetCellTime(t *testing.T) {
@@ -292,7 +330,7 @@ func TestGetCellValue(t *testing.T) {
 
 	f.Sheet.Delete("xl/worksheets/sheet1.xml")
 	f.Pkg.Store("xl/worksheets/sheet1.xml", []byte(fmt.Sprintf(sheetData, `<row r="3"><c t="inlineStr"><is><t>A3</t></is></c></row><row><c t="inlineStr"><is><t>A4</t></is></c><c t="inlineStr"><is><t>B4</t></is></c></row><row r="7"><c t="inlineStr"><is><t>A7</t></is></c><c t="inlineStr"><is><t>B7</t></is></c></row><row><c t="inlineStr"><is><t>A8</t></is></c><c t="inlineStr"><is><t>B8</t></is></c></row>`)))
-	f.checked = nil
+	f.checked = sync.Map{}
 	cells := []string{"A3", "A4", "B4", "A7", "B7"}
 	rows, err := f.GetRows("Sheet1")
 	assert.Equal(t, [][]string{nil, nil, {"A3"}, {"A4", "B4"}, nil, nil, {"A7", "B7"}, {"A8", "B8"}}, rows)
@@ -308,38 +346,35 @@ func TestGetCellValue(t *testing.T) {
 
 	f.Sheet.Delete("xl/worksheets/sheet1.xml")
 	f.Pkg.Store("xl/worksheets/sheet1.xml", []byte(fmt.Sprintf(sheetData, `<row r="2"><c r="A2" t="inlineStr"><is><t>A2</t></is></c></row><row r="2"><c r="B2" t="inlineStr"><is><t>B2</t></is></c></row>`)))
-	f.checked = nil
+	f.checked = sync.Map{}
 	cell, err := f.GetCellValue("Sheet1", "A2")
 	assert.Equal(t, "A2", cell)
 	assert.NoError(t, err)
 
 	f.Sheet.Delete("xl/worksheets/sheet1.xml")
 	f.Pkg.Store("xl/worksheets/sheet1.xml", []byte(fmt.Sprintf(sheetData, `<row r="2"><c r="A2" t="inlineStr"><is><t>A2</t></is></c></row><row r="2"><c r="B2" t="inlineStr"><is><t>B2</t></is></c></row>`)))
-	f.checked = nil
+	f.checked = sync.Map{}
 	rows, err = f.GetRows("Sheet1")
 	assert.Equal(t, [][]string{nil, {"A2", "B2"}}, rows)
 	assert.NoError(t, err)
 
 	f.Sheet.Delete("xl/worksheets/sheet1.xml")
 	f.Pkg.Store("xl/worksheets/sheet1.xml", []byte(fmt.Sprintf(sheetData, `<row r="1"><c r="A1" t="inlineStr"><is><t>A1</t></is></c></row><row r="1"><c r="B1" t="inlineStr"><is><t>B1</t></is></c></row>`)))
-	f.checked = nil
+	f.checked = sync.Map{}
 	rows, err = f.GetRows("Sheet1")
 	assert.Equal(t, [][]string{{"A1", "B1"}}, rows)
 	assert.NoError(t, err)
 
 	f.Sheet.Delete("xl/worksheets/sheet1.xml")
 	f.Pkg.Store("xl/worksheets/sheet1.xml", []byte(fmt.Sprintf(sheetData, `<row><c t="inlineStr"><is><t>A3</t></is></c></row><row><c t="inlineStr"><is><t>A4</t></is></c><c t="inlineStr"><is><t>B4</t></is></c></row><row r="7"><c t="inlineStr"><is><t>A7</t></is></c><c t="inlineStr"><is><t>B7</t></is></c></row><row><c t="inlineStr"><is><t>A8</t></is></c><c t="inlineStr"><is><t>B8</t></is></c></row>`)))
-	f.checked = nil
+	f.checked = sync.Map{}
 	rows, err = f.GetRows("Sheet1")
 	assert.Equal(t, [][]string{{"A3"}, {"A4", "B4"}, nil, nil, nil, nil, {"A7", "B7"}, {"A8", "B8"}}, rows)
 	assert.NoError(t, err)
 
 	f.Sheet.Delete("xl/worksheets/sheet1.xml")
 	f.Pkg.Store("xl/worksheets/sheet1.xml", []byte(fmt.Sprintf(sheetData, `<row r="0"><c r="H6" t="inlineStr"><is><t>H6</t></is></c><c r="A1" t="inlineStr"><is><t>r0A6</t></is></c><c r="F4" t="inlineStr"><is><t>F4</t></is></c></row><row><c r="A1" t="inlineStr"><is><t>A6</t></is></c><c r="B1" t="inlineStr"><is><t>B6</t></is></c><c r="C1" t="inlineStr"><is><t>C6</t></is></c></row><row r="3"><c r="A3"><v>100</v></c><c r="B3" t="inlineStr"><is><t>B3</t></is></c></row>`)))
-	f.checked = nil
-	cell, err = f.GetCellValue("Sheet1", "H6")
-	assert.Equal(t, "H6", cell)
-	assert.NoError(t, err)
+	f.checked = sync.Map{}
 	rows, err = f.GetRows("Sheet1")
 	assert.Equal(t, [][]string{
 		{"A6", "B6", "C6"},
@@ -349,6 +384,19 @@ func TestGetCellValue(t *testing.T) {
 		nil,
 		{"", "", "", "", "", "", "", "H6"},
 	}, rows)
+	assert.NoError(t, err)
+	cell, err = f.GetCellValue("Sheet1", "H6")
+	assert.Equal(t, "H6", cell)
+	assert.NoError(t, err)
+
+	f.Sheet.Delete("xl/worksheets/sheet1.xml")
+	f.Pkg.Store("xl/worksheets/sheet1.xml", []byte(fmt.Sprintf(sheetData, `<row><c r="A1" t="inlineStr"><is><t>A1</t></is></c></row><row></row><row><c r="A3" t="inlineStr"><is><t>A3</t></is></c></row>`)))
+	f.checked = sync.Map{}
+	rows, err = f.GetRows("Sheet1")
+	assert.Equal(t, [][]string{{"A1"}, nil, {"A3"}}, rows)
+	assert.NoError(t, err)
+	cell, err = f.GetCellValue("Sheet1", "A3")
+	assert.Equal(t, "A3", cell)
 	assert.NoError(t, err)
 
 	f.Sheet.Delete("xl/worksheets/sheet1.xml")
@@ -389,7 +437,7 @@ func TestGetCellValue(t *testing.T) {
 	<row r="34"><c r="A34" t="d"><v>20221022T150529Z</v></c></row>
 	<row r="35"><c r="A35" t="d"><v>2022-10-22T15:05:29Z</v></c></row>
 	<row r="36"><c r="A36" t="d"><v>2020-07-10 15:00:00.000</v></c></row>`)))
-	f.checked = nil
+	f.checked = sync.Map{}
 	rows, err = f.GetCols("Sheet1")
 	assert.Equal(t, []string{
 		"2422.3",
@@ -438,7 +486,7 @@ func TestGetCellValue(t *testing.T) {
 	assert.EqualError(t, value, "XML syntax error on line 1: invalid UTF-8")
 	// Test get cell value with invalid sheet name
 	_, err = f.GetCellValue("Sheet:1", "A1")
-	assert.EqualError(t, err, ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, err)
 }
 
 func TestGetCellType(t *testing.T) {
@@ -451,10 +499,10 @@ func TestGetCellType(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, CellTypeSharedString, cellType)
 	_, err = f.GetCellType("Sheet1", "A")
-	assert.EqualError(t, err, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), err)
 	// Test get cell type with invalid sheet name
 	_, err = f.GetCellType("Sheet:1", "A1")
-	assert.EqualError(t, err, ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, err)
 }
 
 func TestGetValueFrom(t *testing.T) {
@@ -480,7 +528,7 @@ func TestGetCellFormula(t *testing.T) {
 
 	// Test get cell formula with invalid sheet name
 	_, err = f.GetCellFormula("Sheet:1", "A1")
-	assert.EqualError(t, err, ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, err)
 
 	// Test get cell formula on no formula cell
 	assert.NoError(t, f.SetCellValue("Sheet1", "A1", true))
@@ -508,6 +556,25 @@ func TestGetCellFormula(t *testing.T) {
 	formula, err := f.GetCellFormula("Sheet1", "B2")
 	assert.NoError(t, err)
 	assert.Equal(t, "", formula)
+
+	// Test get array formula with invalid cell range reference
+	f = NewFile()
+	assert.NoError(t, f.AddChartSheet("Chart1", &Chart{Type: Line}))
+	_, err = f.NewSheet("Sheet2")
+	assert.NoError(t, err)
+	formulaType, ref := STCellFormulaTypeArray, "B1:B2"
+	assert.NoError(t, f.SetCellFormula("Sheet2", "B1", "A1:B2", FormulaOpts{Ref: &ref, Type: &formulaType}))
+	ws, ok := f.Sheet.Load("xl/worksheets/sheet3.xml")
+	assert.True(t, ok)
+	ws.(*xlsxWorksheet).SheetData.Row[0].C[1].F.Ref = ":"
+	_, err = f.getCellFormula("Sheet2", "A1", true)
+	assert.Equal(t, newCellNameToCoordinatesError("", newInvalidCellNameError("")), err)
+
+	// Test set formula for the cells in array formula range with unsupported charset
+	f = NewFile()
+	f.Sheet.Delete("xl/worksheets/sheet1.xml")
+	f.Pkg.Store("xl/worksheets/sheet1.xml", MacintoshCyrillicCharset)
+	assert.EqualError(t, f.setArrayFormulaCells(), "XML syntax error on line 1: invalid UTF-8")
 }
 
 func ExampleFile_SetCellFloat() {
@@ -566,10 +633,10 @@ func TestSetCellFormula(t *testing.T) {
 	assert.NoError(t, f.SetCellFormula("Sheet1", "C19", "SUM(Sheet2!D2,Sheet2!D9)"))
 
 	// Test set cell formula with invalid sheet name
-	assert.EqualError(t, f.SetCellFormula("Sheet:1", "A1", "SUM(1,2)"), ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, f.SetCellFormula("Sheet:1", "A1", "SUM(1,2)"))
 
 	// Test set cell formula with illegal rows number
-	assert.EqualError(t, f.SetCellFormula("Sheet1", "C", "SUM(Sheet2!D2,Sheet2!D9)"), newCellNameToCoordinatesError("C", newInvalidCellNameError("C")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("C", newInvalidCellNameError("C")), f.SetCellFormula("Sheet1", "C", "SUM(Sheet2!D2,Sheet2!D9)"))
 
 	assert.NoError(t, f.SaveAs(filepath.Join("test", "TestSetCellFormula1.xlsx")))
 	assert.NoError(t, f.Close())
@@ -601,7 +668,7 @@ func TestSetCellFormula(t *testing.T) {
 	ref = "D1:D5"
 	assert.NoError(t, f.SetCellFormula("Sheet1", "D1", "=A1+C1", FormulaOpts{Ref: &ref, Type: &formulaType}))
 	ref = ""
-	assert.EqualError(t, f.SetCellFormula("Sheet1", "D1", "=A1+C1", FormulaOpts{Ref: &ref, Type: &formulaType}), ErrParameterInvalid.Error())
+	assert.Equal(t, ErrParameterInvalid, f.SetCellFormula("Sheet1", "D1", "=A1+C1", FormulaOpts{Ref: &ref, Type: &formulaType}))
 	assert.NoError(t, f.SaveAs(filepath.Join("test", "TestSetCellFormula5.xlsx")))
 
 	// Test set table formula for the cells
@@ -613,6 +680,14 @@ func TestSetCellFormula(t *testing.T) {
 	formulaType = STCellFormulaTypeDataTable
 	assert.NoError(t, f.SetCellFormula("Sheet1", "C2", "=SUM(Table1[[A]:[B]])", FormulaOpts{Type: &formulaType}))
 	assert.NoError(t, f.SaveAs(filepath.Join("test", "TestSetCellFormula6.xlsx")))
+
+	// Test set array formula with invalid cell range reference
+	formulaType, ref = STCellFormulaTypeArray, ":"
+	assert.Equal(t, newCellNameToCoordinatesError("", newInvalidCellNameError("")), f.SetCellFormula("Sheet1", "B1", "A1:A2", FormulaOpts{Ref: &ref, Type: &formulaType}))
+
+	// Test set array formula with invalid cell reference
+	formulaType, ref = STCellFormulaTypeArray, "A1:A2"
+	assert.Equal(t, ErrColumnNumber, f.SetCellFormula("Sheet1", "A1", "SUM(XFE1:XFE2)", FormulaOpts{Ref: &ref, Type: &formulaType}))
 }
 
 func TestGetCellRichText(t *testing.T) {
@@ -654,32 +729,47 @@ func TestGetCellRichText(t *testing.T) {
 	runsSource[1].Font.Color = strings.ToUpper(runsSource[1].Font.Color)
 	assert.True(t, reflect.DeepEqual(runsSource[1].Font, runs[1].Font), "should get the same font")
 
-	// Test get cell rich text when string item index overflow
+	// Test get cell rich text with inlineStr
 	ws, ok := f.Sheet.Load("xl/worksheets/sheet1.xml")
 	assert.True(t, ok)
-	ws.(*xlsxWorksheet).SheetData.Row[0].C[0].V = "2"
+	ws.(*xlsxWorksheet).SheetData.Row[0].C[0] = xlsxC{
+		T: "inlineStr",
+		IS: &xlsxSI{
+			T: &xlsxT{Val: "A"},
+			R: []xlsxR{{T: &xlsxT{Val: "1"}}},
+		},
+	}
+	runs, err = f.GetCellRichText("Sheet1", "A1")
+	assert.NoError(t, err)
+	assert.Equal(t, []RichTextRun{{Text: "A"}, {Text: "1"}}, runs)
+
+	// Test get cell rich text when string item index overflow
+	ws, ok = f.Sheet.Load("xl/worksheets/sheet1.xml")
+	assert.True(t, ok)
+	ws.(*xlsxWorksheet).SheetData.Row[0].C[0] = xlsxC{V: "2", IS: &xlsxSI{}}
 	runs, err = f.GetCellRichText("Sheet1", "A1")
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(runs))
 	// Test get cell rich text when string item index is negative
 	ws, ok = f.Sheet.Load("xl/worksheets/sheet1.xml")
 	assert.True(t, ok)
-	ws.(*xlsxWorksheet).SheetData.Row[0].C[0].V = "-1"
+	ws.(*xlsxWorksheet).SheetData.Row[0].C[0] = xlsxC{T: "s", V: "-1", IS: &xlsxSI{}}
 	runs, err = f.GetCellRichText("Sheet1", "A1")
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(runs))
 	// Test get cell rich text on invalid string item index
 	ws, ok = f.Sheet.Load("xl/worksheets/sheet1.xml")
 	assert.True(t, ok)
-	ws.(*xlsxWorksheet).SheetData.Row[0].C[0].V = "x"
-	_, err = f.GetCellRichText("Sheet1", "A1")
-	assert.EqualError(t, err, "strconv.Atoi: parsing \"x\": invalid syntax")
+	ws.(*xlsxWorksheet).SheetData.Row[0].C[0] = xlsxC{V: "x"}
+	runs, err = f.GetCellRichText("Sheet1", "A1")
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(runs))
 	// Test set cell rich text on not exists worksheet
 	_, err = f.GetCellRichText("SheetN", "A1")
 	assert.EqualError(t, err, "sheet SheetN does not exist")
 	// Test set cell rich text with illegal cell reference
 	_, err = f.GetCellRichText("Sheet1", "A")
-	assert.EqualError(t, err, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), err)
 	// Test set rich text color theme without tint
 	assert.NoError(t, f.SetCellRichText("Sheet1", "A1", []RichTextRun{{Font: &Font{ColorTheme: &theme}}}))
 	// Test set rich text color tint without theme
@@ -696,7 +786,7 @@ func TestGetCellRichText(t *testing.T) {
 	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
 	// Test get cell rich text with invalid sheet name
 	_, err = f.GetCellRichText("Sheet:1", "A1")
-	assert.EqualError(t, err, ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, err)
 }
 
 func TestSetCellRichText(t *testing.T) {
@@ -795,7 +885,7 @@ func TestSetCellRichText(t *testing.T) {
 	// Test set cell rich text with invalid sheet name
 	assert.EqualError(t, f.SetCellRichText("Sheet:1", "A1", richTextRun), ErrSheetNameInvalid.Error())
 	// Test set cell rich text with illegal cell reference
-	assert.EqualError(t, f.SetCellRichText("Sheet1", "A", richTextRun), newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), f.SetCellRichText("Sheet1", "A", richTextRun))
 	richTextRun = []RichTextRun{{Text: strings.Repeat("s", TotalCellChars+1)}}
 	// Test set cell rich text with characters over the maximum limit
 	assert.EqualError(t, f.SetCellRichText("Sheet1", "A1", richTextRun), ErrCellCharsLength.Error())

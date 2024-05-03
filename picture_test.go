@@ -60,10 +60,10 @@ func TestAddPicture(t *testing.T) {
 	// Test add picture to worksheet from bytes
 	assert.NoError(t, f.AddPictureFromBytes("Sheet1", "Q1", &Picture{Extension: ".png", File: file, Format: &GraphicOptions{AltText: "Excel Logo"}}))
 	// Test add picture to worksheet from bytes with illegal cell reference
-	assert.EqualError(t, f.AddPictureFromBytes("Sheet1", "A", &Picture{Extension: ".png", File: file, Format: &GraphicOptions{AltText: "Excel Logo"}}), newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), f.AddPictureFromBytes("Sheet1", "A", &Picture{Extension: ".png", File: file, Format: &GraphicOptions{AltText: "Excel Logo"}}))
 
-	for cell, ext := range map[string]string{"Q8": "gif", "Q15": "jpg", "Q22": "tif", "Q28": "bmp"} {
-		assert.NoError(t, f.AddPicture("Sheet1", cell, filepath.Join("test", "images", fmt.Sprintf("excel.%s", ext)), nil))
+	for _, preset := range [][]string{{"Q8", "gif"}, {"Q15", "jpg"}, {"Q22", "tif"}, {"Q28", "bmp"}} {
+		assert.NoError(t, f.AddPicture("Sheet1", preset[0], filepath.Join("test", "images", fmt.Sprintf("excel.%s", preset[1])), nil))
 	}
 
 	// Test write file to given path
@@ -77,6 +77,33 @@ func TestAddPicture(t *testing.T) {
 	pics, err := f.GetPictures("Sheet1", "A30")
 	assert.NoError(t, err)
 	assert.Len(t, pics, 2)
+
+	// Test get picture cells
+	cells, err := f.GetPictureCells("Sheet1")
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"F21", "A30", "B30", "Q1", "Q8", "Q15", "Q22", "Q28"}, cells)
+	assert.NoError(t, f.Close())
+
+	f, err = OpenFile(filepath.Join("test", "TestAddPicture1.xlsx"))
+	assert.NoError(t, err)
+	path := "xl/drawings/drawing1.xml"
+	f.Drawings.Delete(path)
+	cells, err = f.GetPictureCells("Sheet1")
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"F21", "A30", "B30", "Q1", "Q8", "Q15", "Q22", "Q28"}, cells)
+	// Test get picture cells with unsupported charset
+	f.Drawings.Delete(path)
+	f.Pkg.Store(path, MacintoshCyrillicCharset)
+	_, err = f.GetPictureCells("Sheet1")
+	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
+	assert.NoError(t, f.Close())
+
+	f, err = OpenFile(filepath.Join("test", "TestAddPicture1.xlsx"))
+	assert.NoError(t, err)
+	// Test get picture cells with unsupported charset
+	f.Pkg.Store(path, MacintoshCyrillicCharset)
+	_, err = f.GetPictureCells("Sheet1")
+	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
 	assert.NoError(t, f.Close())
 
 	// Test add picture with unsupported charset content types
@@ -138,7 +165,7 @@ func TestGetPicture(t *testing.T) {
 
 	// Try to get picture from a worksheet with illegal cell reference
 	_, err = f.GetPictures("Sheet1", "A")
-	assert.EqualError(t, err, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), err)
 
 	// Try to get picture from a worksheet that doesn't contain any images
 	pics, err = f.GetPictures("Sheet3", "I9")
@@ -185,6 +212,11 @@ func TestGetPicture(t *testing.T) {
 	pics, err = f.GetPictures("Sheet2", "K16")
 	assert.NoError(t, err)
 	assert.Len(t, pics, 1)
+	// Try to get picture cells with one cell anchor
+	cells, err := f.GetPictureCells("Sheet2")
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"K16"}, cells)
+	assert.NoError(t, f.Close())
 
 	// Test get picture from none drawing worksheet
 	f = NewFile()
@@ -196,12 +228,43 @@ func TestGetPicture(t *testing.T) {
 
 	// Test get pictures with unsupported charset
 	path := "xl/drawings/drawing1.xml"
+	f.Drawings.Delete(path)
 	f.Pkg.Store(path, MacintoshCyrillicCharset)
+	_, err = f.GetPictures("Sheet1", "F21")
+	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
 	_, err = f.getPicture(20, 5, path, "xl/drawings/_rels/drawing2.xml.rels")
 	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
 	f.Drawings.Delete(path)
 	_, err = f.getPicture(20, 5, path, "xl/drawings/_rels/drawing2.xml.rels")
 	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
+	assert.NoError(t, f.Close())
+
+	// Test get embedded cell pictures
+	f, err = OpenFile(filepath.Join("test", "TestGetPicture.xlsx"))
+	assert.NoError(t, err)
+	assert.NoError(t, f.SetCellFormula("Sheet1", "F21", "=_xlfn.DISPIMG(\"ID_********************************\",1)"))
+	f.Pkg.Store(defaultXMLPathCellImages, []byte(`<etc:cellImages xmlns:etc="http://www.wps.cn/officeDocument/2017/etCustomData"><etc:cellImage><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="1" name="ID_********************************" descr="CellImage1"/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId1"/></xdr:blipFill></xdr:pic></etc:cellImage></etc:cellImages>`))
+	f.Pkg.Store(defaultXMLPathCellImagesRels, []byte(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.jpeg"/></Relationships>`))
+	pics, err = f.GetPictures("Sheet1", "F21")
+	assert.NoError(t, err)
+	assert.Len(t, pics, 2)
+	assert.Equal(t, "CellImage1", pics[0].Format.AltText)
+
+	// Test get embedded cell pictures with invalid formula
+	assert.NoError(t, f.SetCellFormula("Sheet1", "A1", "=_xlfn.DISPIMG()"))
+	_, err = f.GetPictures("Sheet1", "A1")
+	assert.EqualError(t, err, "DISPIMG requires 2 numeric arguments")
+
+	// Test get embedded cell pictures with unsupported charset
+	f.Relationships.Delete(defaultXMLPathCellImagesRels)
+	f.Pkg.Store(defaultXMLPathCellImagesRels, MacintoshCyrillicCharset)
+	_, err = f.GetPictures("Sheet1", "F21")
+	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
+	f.Pkg.Store(defaultXMLPathCellImages, MacintoshCyrillicCharset)
+	f.DecodeCellImages = nil
+	_, err = f.GetPictures("Sheet1", "F21")
+	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
+	assert.NoError(t, f.Close())
 }
 
 func TestAddDrawingPicture(t *testing.T) {
@@ -240,19 +303,60 @@ func TestAddPictureFromBytes(t *testing.T) {
 func TestDeletePicture(t *testing.T) {
 	f, err := OpenFile(filepath.Join("test", "Book1.xlsx"))
 	assert.NoError(t, err)
+	// Test delete picture on a worksheet which does not contains any pictures
 	assert.NoError(t, f.DeletePicture("Sheet1", "A1"))
-	assert.NoError(t, f.AddPicture("Sheet1", "P1", filepath.Join("test", "images", "excel.jpg"), nil))
-	assert.NoError(t, f.DeletePicture("Sheet1", "P1"))
+	// Add same pictures on different worksheets
+	assert.NoError(t, f.AddPicture("Sheet1", "F20", filepath.Join("test", "images", "excel.jpg"), nil))
+	assert.NoError(t, f.AddPicture("Sheet1", "I20", filepath.Join("test", "images", "excel.jpg"), nil))
+	assert.NoError(t, f.AddPicture("Sheet2", "F1", filepath.Join("test", "images", "excel.jpg"), nil))
+	// Test delete picture on a worksheet, the images should be preserved
+	assert.NoError(t, f.DeletePicture("Sheet1", "F20"))
 	assert.NoError(t, f.SaveAs(filepath.Join("test", "TestDeletePicture.xlsx")))
+	assert.NoError(t, f.Close())
+
+	f, err = OpenFile(filepath.Join("test", "TestDeletePicture.xlsx"))
+	assert.NoError(t, err)
+	// Test delete same picture on different worksheet, the images should be removed
+	assert.NoError(t, f.DeletePicture("Sheet1", "F10"))
+	assert.NoError(t, f.DeletePicture("Sheet2", "F1"))
+	assert.NoError(t, f.DeletePicture("Sheet1", "I20"))
+	assert.NoError(t, f.SaveAs(filepath.Join("test", "TestDeletePicture2.xlsx")))
+
 	// Test delete picture on not exists worksheet
 	assert.EqualError(t, f.DeletePicture("SheetN", "A1"), "sheet SheetN does not exist")
 	// Test delete picture with invalid sheet name
-	assert.EqualError(t, f.DeletePicture("Sheet:1", "A1"), ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, f.DeletePicture("Sheet:1", "A1"))
 	// Test delete picture with invalid coordinates
-	assert.EqualError(t, f.DeletePicture("Sheet1", ""), newCellNameToCoordinatesError("", newInvalidCellNameError("")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("", newInvalidCellNameError("")), f.DeletePicture("Sheet1", ""))
 	assert.NoError(t, f.Close())
 	// Test delete picture on no chart worksheet
 	assert.NoError(t, NewFile().DeletePicture("Sheet1", "A1"))
+
+	f, err = OpenFile(filepath.Join("test", "TestDeletePicture.xlsx"))
+	assert.NoError(t, err)
+	// Test delete picture with unsupported charset drawing
+	f.Pkg.Store("xl/drawings/drawing1.xml", MacintoshCyrillicCharset)
+	assert.EqualError(t, f.DeletePicture("Sheet1", "F10"), "XML syntax error on line 1: invalid UTF-8")
+	assert.NoError(t, f.Close())
+
+	f, err = OpenFile(filepath.Join("test", "TestDeletePicture.xlsx"))
+	assert.NoError(t, err)
+	// Test delete picture with unsupported charset drawing relationships
+	f.Relationships.Delete("xl/drawings/_rels/drawing1.xml.rels")
+	f.Pkg.Store("xl/drawings/_rels/drawing1.xml.rels", MacintoshCyrillicCharset)
+	assert.NoError(t, f.DeletePicture("Sheet2", "F1"))
+	assert.NoError(t, f.Close())
+
+	f = NewFile()
+	assert.NoError(t, err)
+	assert.NoError(t, f.AddPicture("Sheet1", "A1", filepath.Join("test", "images", "excel.jpg"), nil))
+	assert.NoError(t, f.AddPicture("Sheet1", "G1", filepath.Join("test", "images", "excel.jpg"), nil))
+	drawing, ok := f.Drawings.Load("xl/drawings/drawing1.xml")
+	assert.True(t, ok)
+	// Made two picture reference the same drawing relationship ID
+	drawing.(*xlsxWsDr).TwoCellAnchor[1].Pic.BlipFill.Blip.Embed = "rId1"
+	assert.NoError(t, f.DeletePicture("Sheet1", "A1"))
+	assert.NoError(t, f.Close())
 }
 
 func TestDrawingResize(t *testing.T) {
@@ -262,11 +366,22 @@ func TestDrawingResize(t *testing.T) {
 	assert.EqualError(t, err, "sheet SheetN does not exist")
 	// Test calculate drawing resize with invalid coordinates
 	_, _, _, _, err = f.drawingResize("Sheet1", "", 1, 1, nil)
-	assert.EqualError(t, err, newCellNameToCoordinatesError("", newInvalidCellNameError("")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("", newInvalidCellNameError("")), err)
 	ws, ok := f.Sheet.Load("xl/worksheets/sheet1.xml")
 	assert.True(t, ok)
 	ws.(*xlsxWorksheet).MergeCells = &xlsxMergeCells{Cells: []*xlsxMergeCell{{Ref: "A:A"}}}
-	assert.EqualError(t, f.AddPicture("Sheet1", "A1", filepath.Join("test", "images", "excel.jpg"), &GraphicOptions{AutoFit: true}), newCellNameToCoordinatesError("A", newInvalidCellNameError("A")).Error())
+	assert.Equal(t, newCellNameToCoordinatesError("A", newInvalidCellNameError("A")), f.AddPicture("Sheet1", "A1", filepath.Join("test", "images", "excel.jpg"), &GraphicOptions{AutoFit: true}))
+}
+
+func TestSetContentTypePartRelsExtensions(t *testing.T) {
+	f := NewFile()
+	f.ContentTypes = &xlsxTypes{}
+	assert.NoError(t, f.setContentTypePartRelsExtensions())
+
+	// Test set content type part relationships extensions with unsupported charset content types
+	f.ContentTypes = nil
+	f.Pkg.Store(defaultXMLPathContentTypes, MacintoshCyrillicCharset)
+	assert.EqualError(t, f.setContentTypePartRelsExtensions(), "XML syntax error on line 1: invalid UTF-8")
 }
 
 func TestSetContentTypePartImageExtensions(t *testing.T) {
@@ -291,4 +406,55 @@ func TestAddContentTypePart(t *testing.T) {
 	f.ContentTypes = nil
 	f.Pkg.Store(defaultXMLPathContentTypes, MacintoshCyrillicCharset)
 	assert.EqualError(t, f.addContentTypePart(0, "unknown"), "XML syntax error on line 1: invalid UTF-8")
+}
+
+func TestGetPictureCells(t *testing.T) {
+	f := NewFile()
+	// Test get picture cells on a worksheet which not contains any pictures
+	cells, err := f.GetPictureCells("Sheet1")
+	assert.NoError(t, err)
+	assert.Empty(t, cells)
+	// Test get picture cells on not exists worksheet
+	_, err = f.GetPictureCells("SheetN")
+	assert.EqualError(t, err, "sheet SheetN does not exist")
+	assert.NoError(t, f.Close())
+
+	// Test get embedded picture cells
+	f = NewFile()
+	assert.NoError(t, f.AddPicture("Sheet1", "A1", filepath.Join("test", "images", "excel.png"), nil))
+	assert.NoError(t, f.SetCellFormula("Sheet1", "A2", "=_xlfn.DISPIMG(\"ID_********************************\",1)"))
+	cells, err = f.GetPictureCells("Sheet1")
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"A2", "A1"}, cells)
+
+	// Test get embedded cell pictures with invalid formula
+	assert.NoError(t, f.SetCellFormula("Sheet1", "A2", "=_xlfn.DISPIMG()"))
+	_, err = f.GetPictureCells("Sheet1")
+	assert.EqualError(t, err, "DISPIMG requires 2 numeric arguments")
+	assert.NoError(t, f.Close())
+}
+
+func TestExtractDecodeCellAnchor(t *testing.T) {
+	f := NewFile()
+	cond := func(a *decodeFrom) bool { return true }
+	cb := func(a *decodeCellAnchor, r *xlsxRelationship) {}
+	f.extractDecodeCellAnchor(&xdrCellAnchor{GraphicFrame: string(MacintoshCyrillicCharset)}, "", cond, cb)
+}
+
+func TestGetCellImages(t *testing.T) {
+	f := NewFile()
+	f.Sheet.Delete("xl/worksheets/sheet1.xml")
+	f.Pkg.Store("xl/worksheets/sheet1.xml", MacintoshCyrillicCharset)
+	_, err := f.getCellImages("Sheet1", "A1")
+	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
+	assert.NoError(t, f.Close())
+}
+
+func TestGetEmbeddedImageCells(t *testing.T) {
+	f := NewFile()
+	f.Sheet.Delete("xl/worksheets/sheet1.xml")
+	f.Pkg.Store("xl/worksheets/sheet1.xml", MacintoshCyrillicCharset)
+	_, err := f.getEmbeddedImageCells("Sheet1")
+	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
+	assert.NoError(t, f.Close())
 }

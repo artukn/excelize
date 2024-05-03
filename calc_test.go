@@ -58,12 +58,22 @@ func TestCalcCellValue(t *testing.T) {
 		"=1>=\"-1\"":             "FALSE",
 		"=\"-1\">=-1":            "TRUE",
 		"=\"-1\">=\"-2\"":        "FALSE",
+		"=-----1+1":              "0",
+		"=------1+1":             "2",
+		"=---1---1":              "-2",
+		"=---1----1":             "0",
 		"=1&2":                   "12",
 		"=15%":                   "0.15",
 		"=1+20%":                 "1.2",
 		"={1}+2":                 "3",
 		"=1+{2}":                 "3",
 		"={1}+{2}":               "3",
+		"=A1+(B1-C1)":            "5",
+		"=A1+(C1-B1)":            "-3",
+		"=A1&B1&C1":              "14",
+		"=B1+C1":                 "4",
+		"=C1+B1":                 "4",
+		"=C1+C1":                 "0",
 		"=\"A\"=\"A\"":           "TRUE",
 		"=\"A\"<>\"A\"":          "FALSE",
 		"=TRUE()&FALSE()":        "TRUEFALSE",
@@ -673,6 +683,8 @@ func TestCalcCellValue(t *testing.T) {
 		// MINVERSE
 		"=MINVERSE(A1:B2)": "-0",
 		// MMULT
+		"=MMULT(0,0)":         "0",
+		"=MMULT(2,4)":         "8",
 		"=MMULT(A4:A4,A4:A4)": "0",
 		// MOD
 		"=MOD(6,4)":        "2",
@@ -764,6 +776,30 @@ func TestCalcCellValue(t *testing.T) {
 		"=ROUNDUP(-11.111,2)":         "-11.12",
 		"=ROUNDUP(-11.111,-1)":        "-20",
 		"=ROUNDUP(ROUNDUP(100,1),-1)": "100",
+		// SEARCH
+		"=SEARCH(\"s\",F1)":           "1",
+		"=SEARCH(\"s\",F1,2)":         "5",
+		"=SEARCH(\"e\",F1)":           "4",
+		"=SEARCH(\"e*\",F1)":          "4",
+		"=SEARCH(\"?e\",F1)":          "3",
+		"=SEARCH(\"??e\",F1)":         "2",
+		"=SEARCH(6,F2)":               "2",
+		"=SEARCH(\"?\",\"你好world\")":  "1",
+		"=SEARCH(\"?l\",\"你好world\")": "5",
+		"=SEARCH(\"?+\",\"你好 1+2\")":  "4",
+		"=SEARCH(\" ?+\",\"你好 1+2\")": "3",
+		// SEARCHB
+		"=SEARCHB(\"s\",F1)":           "1",
+		"=SEARCHB(\"s\",F1,2)":         "5",
+		"=SEARCHB(\"e\",F1)":           "4",
+		"=SEARCHB(\"e*\",F1)":          "4",
+		"=SEARCHB(\"?e\",F1)":          "3",
+		"=SEARCHB(\"??e\",F1)":         "2",
+		"=SEARCHB(6,F2)":               "2",
+		"=SEARCHB(\"?\",\"你好world\")":  "5",
+		"=SEARCHB(\"?l\",\"你好world\")": "7",
+		"=SEARCHB(\"?+\",\"你好 1+2\")":  "6",
+		"=SEARCHB(\" ?+\",\"你好 1+2\")": "5",
 		// SEC
 		"=_xlfn.SEC(-3.14159265358979)": "-1",
 		"=_xlfn.SEC(0)":                 "1",
@@ -1687,6 +1723,10 @@ func TestCalcCellValue(t *testing.T) {
 		"=CONCATENATE(TRUE(),1,FALSE(),\"0\",INT(2))": "TRUE1FALSE02",
 		"=CONCATENATE(MUNIT(2))":                      "1001",
 		"=CONCATENATE(A1:B2)":                         "1425",
+		// DBCS
+		"=DBCS(\"\")":        "",
+		"=DBCS(123.456)":     "123.456",
+		"=DBCS(\"123.456\")": "123.456",
 		// EXACT
 		"=EXACT(1,\"1\")":     "TRUE",
 		"=EXACT(1,1)":         "TRUE",
@@ -1707,6 +1747,7 @@ func TestCalcCellValue(t *testing.T) {
 		"=FIND(\"i\",\"Original Text\",4)": "5",
 		"=FIND(\"\",\"Original Text\")":    "1",
 		"=FIND(\"\",\"Original Text\",2)":  "2",
+		"=FIND(\"s\",\"Sales\",2)":         "5",
 		// FINDB
 		"=FINDB(\"T\",\"Original Text\")":   "10",
 		"=FINDB(\"t\",\"Original Text\")":   "13",
@@ -1714,6 +1755,7 @@ func TestCalcCellValue(t *testing.T) {
 		"=FINDB(\"i\",\"Original Text\",4)": "5",
 		"=FINDB(\"\",\"Original Text\")":    "1",
 		"=FINDB(\"\",\"Original Text\",2)":  "2",
+		"=FINDB(\"s\",\"Sales\",2)":         "5",
 		// LEFT
 		"=LEFT(\"Original Text\")":    "O",
 		"=LEFT(\"Original Text\",4)":  "Orig",
@@ -1732,10 +1774,12 @@ func TestCalcCellValue(t *testing.T) {
 		"=LEFTB(\"Original Text\",13)": "Original Text",
 		"=LEFTB(\"Original Text\",20)": "Original Text",
 		// LEN
-		"=LEN(\"\")":          "0",
-		"=LEN(D1)":            "5",
-		"=LEN(\"テキスト\")":      "4",
-		"=LEN(\"オリジナルテキスト\")": "9",
+		"=LEN(\"\")":              "0",
+		"=LEN(D1)":                "5",
+		"=LEN(\"テキスト\")":          "4",
+		"=LEN(\"オリジナルテキスト\")":     "9",
+		"=LEN(7+LEN(A1&B1&C1))":   "1",
+		"=LEN(8+LEN(A1+(C1-B1)))": "2",
 		// LENB
 		"=LENB(\"\")":          "0",
 		"=LENB(D1)":            "5",
@@ -1752,14 +1796,18 @@ func TestCalcCellValue(t *testing.T) {
 		"=MID(\"255 years\",3,1)":     "5",
 		"=MID(\"text\",3,6)":          "xt",
 		"=MID(\"text\",6,0)":          "",
-		"=MID(\"オリジナルテキスト\",6,4)":     "テキスト",
-		"=MID(\"オリジナルテキスト\",3,5)":     "ジナルテキ",
+		"=MID(\"你好World\",5,1)":       "r",
+		"=MID(\"\u30AA\u30EA\u30B8\u30CA\u30EB\u30C6\u30AD\u30B9\u30C8\",6,4)": "\u30C6\u30AD\u30B9\u30C8",
+		"=MID(\"\u30AA\u30EA\u30B8\u30CA\u30EB\u30C6\u30AD\u30B9\u30C8\",3,5)": "\u30B8\u30CA\u30EB\u30C6\u30AD",
 		// MIDB
 		"=MIDB(\"Original Text\",7,1)": "a",
 		"=MIDB(\"Original Text\",4,7)": "ginal T",
 		"=MIDB(\"255 years\",3,1)":     "5",
 		"=MIDB(\"text\",3,6)":          "xt",
 		"=MIDB(\"text\",6,0)":          "",
+		"=MIDB(\"你好World\",5,1)":       "W",
+		"=MIDB(\"\u30AA\u30EA\u30B8\u30CA\u30EB\u30C6\u30AD\u30B9\u30C8\",6,4)": "\u30B8\u30CA",
+		"=MIDB(\"\u30AA\u30EA\u30B8\u30CA\u30EB\u30C6\u30AD\u30B9\u30C8\",3,5)": "\u30EA\u30B8\xe3",
 		// PROPER
 		"=PROPER(\"this is a test sentence\")": "This Is A Test Sentence",
 		"=PROPER(\"THIS IS A TEST SENTENCE\")": "This Is A Test Sentence",
@@ -1802,6 +1850,44 @@ func TestCalcCellValue(t *testing.T) {
 		"=SUBSTITUTE(\"abab\",\"x\",\"X\",2)":                    "abab",
 		"=SUBSTITUTE(\"John is 5 years old\",\"John\",\"Jack\")": "Jack is 5 years old",
 		"=SUBSTITUTE(\"John is 5 years old\",\"5\",\"6\")":       "John is 6 years old",
+		// TEXT
+		"=TEXT(\"07/07/2015\",\"mm/dd/yyyy\")":        "07/07/2015",
+		"=TEXT(42192,\"mm/dd/yyyy\")":                 "07/07/2015",
+		"=TEXT(42192,\"mmm dd yyyy\")":                "Jul 07 2015",
+		"=TEXT(0.75,\"hh:mm\")":                       "18:00",
+		"=TEXT(36.363636,\"0.00\")":                   "36.36",
+		"=TEXT(567.9,\"$#,##0.00\")":                  "$567.90",
+		"=TEXT(-5,\"+ $#,##0.00;- $#,##0.00;$0.00\")": "- $5.00",
+		"=TEXT(5,\"+ $#,##0.00;- $#,##0.00;$0.00\")":  "+ $5.00",
+		// TEXTAFTER
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"hood\")":               "'s, red hood",
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"HOOD\",1,1)":           "'s, red hood",
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"basket\",1,0,0,\"x\")": "x",
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"basket\",1,0,1,\"x\")": "",
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"hood\",-1)":            "",
+		"=TEXTAFTER(\"Jones,Bob\",\",\")":                                    "Bob",
+		"=TEXTAFTER(\"12 ft x 20 ft\",\" x \")":                              "20 ft",
+		"=TEXTAFTER(\"ABX-112-Red-Y\",\"-\",1)":                              "112-Red-Y",
+		"=TEXTAFTER(\"ABX-112-Red-Y\",\"-\",2)":                              "Red-Y",
+		"=TEXTAFTER(\"ABX-112-Red-Y\",\"-\",-1)":                             "Y",
+		"=TEXTAFTER(\"ABX-112-Red-Y\",\"-\",-2)":                             "Red-Y",
+		"=TEXTAFTER(\"ABX-112-Red-Y\",\"-\",-3)":                             "112-Red-Y",
+		"=TEXTAFTER(\"ABX-123-Red-XYZ\",\"-\",-4,0,1)":                       "ABX-123-Red-XYZ",
+		"=TEXTAFTER(\"ABX-123-Red-XYZ\",\"A\")":                              "BX-123-Red-XYZ",
+		// TEXTBEFORE
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"hood\")":               "Red riding ",
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"HOOD\",1,1)":           "Red riding ",
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"basket\",1,0,0,\"x\")": "x",
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"basket\",1,0,1,\"x\")": "Red riding hood's, red hood",
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"hood\",-1)":            "Red riding hood's, red ",
+		"=TEXTBEFORE(\"Jones,Bob\",\",\")":                                    "Jones",
+		"=TEXTBEFORE(\"12 ft x 20 ft\",\" x \")":                              "12 ft",
+		"=TEXTBEFORE(\"ABX-112-Red-Y\",\"-\",1)":                              "ABX",
+		"=TEXTBEFORE(\"ABX-112-Red-Y\",\"-\",2)":                              "ABX-112",
+		"=TEXTBEFORE(\"ABX-112-Red-Y\",\"-\",-1)":                             "ABX-112-Red",
+		"=TEXTBEFORE(\"ABX-112-Red-Y\",\"-\",-2)":                             "ABX-112",
+		"=TEXTBEFORE(\"ABX-123-Red-XYZ\",\"-\",4,0,1)":                        "ABX-123-Red-XYZ",
+		"=TEXTBEFORE(\"ABX-112-Red-Y\",\"A\")":                                "",
 		// TEXTJOIN
 		"=TEXTJOIN(\"-\",TRUE,1,2,3,4)":  "1-2-3-4",
 		"=TEXTJOIN(A4,TRUE,A1:B2)":       "1040205",
@@ -2154,6 +2240,8 @@ func TestCalcCellValue(t *testing.T) {
 		// YIELDMAT
 		"=YIELDMAT(\"01/01/2017\",\"06/30/2018\",\"06/01/2014\",5.5%,101)":   "0.0419422478838651",
 		"=YIELDMAT(\"01/01/2017\",\"06/30/2018\",\"06/01/2014\",5.5%,101,0)": "0.0419422478838651",
+		// DISPIMG
+		"=_xlfn.DISPIMG(\"ID_********************************\",1)": "ID_********************************",
 	}
 	for formula, expected := range mathCalc {
 		f := prepareCalcData(cellData)
@@ -2476,146 +2564,146 @@ func TestCalcCellValue(t *testing.T) {
 		"=_xlfn.ARABIC()": {"#VALUE!", "ARABIC requires 1 numeric argument"},
 		"=_xlfn.ARABIC(\"" + strings.Repeat("I", 256) + "\")": {"#VALUE!", "#VALUE!"},
 		// ASIN
-		"=ASIN()":    {"#VALUE!", "ASIN requires 1 numeric argument"},
-		`=ASIN("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ASIN()":      {"#VALUE!", "ASIN requires 1 numeric argument"},
+		"=ASIN(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// ASINH
-		"=ASINH()":    {"#VALUE!", "ASINH requires 1 numeric argument"},
-		`=ASINH("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ASINH()":      {"#VALUE!", "ASINH requires 1 numeric argument"},
+		"=ASINH(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// ATAN
-		"=ATAN()":    {"#VALUE!", "ATAN requires 1 numeric argument"},
-		`=ATAN("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ATAN()":      {"#VALUE!", "ATAN requires 1 numeric argument"},
+		"=ATAN(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// ATANH
-		"=ATANH()":    {"#VALUE!", "ATANH requires 1 numeric argument"},
-		`=ATANH("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ATANH()":      {"#VALUE!", "ATANH requires 1 numeric argument"},
+		"=ATANH(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// ATAN2
-		"=ATAN2()":      {"#VALUE!", "ATAN2 requires 2 numeric arguments"},
-		`=ATAN2("X",0)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=ATAN2(0,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ATAN2()":        {"#VALUE!", "ATAN2 requires 2 numeric arguments"},
+		"=ATAN2(\"X\",0)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ATAN2(0,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// BASE
-		"=BASE()":        {"#VALUE!", "BASE requires at least 2 arguments"},
-		"=BASE(1,2,3,4)": {"#VALUE!", "BASE allows at most 3 arguments"},
-		"=BASE(1,1)":     {"#VALUE!", "radix must be an integer >= 2 and <= 36"},
-		`=BASE("X",2)`:   {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=BASE(1,"X")`:   {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=BASE(1,2,"X")`: {"#VALUE!", "strconv.Atoi: parsing \"X\": invalid syntax"},
+		"=BASE()":          {"#VALUE!", "BASE requires at least 2 arguments"},
+		"=BASE(1,2,3,4)":   {"#VALUE!", "BASE allows at most 3 arguments"},
+		"=BASE(1,1)":       {"#VALUE!", "radix must be an integer >= 2 and <= 36"},
+		"=BASE(\"X\",2)":   {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=BASE(1,\"X\")":   {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=BASE(1,2,\"X\")": {"#VALUE!", "strconv.Atoi: parsing \"X\": invalid syntax"},
 		// CEILING
-		"=CEILING()":      {"#VALUE!", "CEILING requires at least 1 argument"},
-		"=CEILING(1,2,3)": {"#VALUE!", "CEILING allows at most 2 arguments"},
-		"=CEILING(1,-1)":  {"#VALUE!", "negative sig to CEILING invalid"},
-		`=CEILING("X",0)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=CEILING(0,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=CEILING()":        {"#VALUE!", "CEILING requires at least 1 argument"},
+		"=CEILING(1,2,3)":   {"#VALUE!", "CEILING allows at most 2 arguments"},
+		"=CEILING(1,-1)":    {"#VALUE!", "negative sig to CEILING invalid"},
+		"=CEILING(\"X\",0)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=CEILING(0,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// _xlfn.CEILING.MATH
-		"=_xlfn.CEILING.MATH()":        {"#VALUE!", "CEILING.MATH requires at least 1 argument"},
-		"=_xlfn.CEILING.MATH(1,2,3,4)": {"#VALUE!", "CEILING.MATH allows at most 3 arguments"},
-		`=_xlfn.CEILING.MATH("X")`:     {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=_xlfn.CEILING.MATH(1,"X")`:   {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=_xlfn.CEILING.MATH(1,2,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.CEILING.MATH()":          {"#VALUE!", "CEILING.MATH requires at least 1 argument"},
+		"=_xlfn.CEILING.MATH(1,2,3,4)":   {"#VALUE!", "CEILING.MATH allows at most 3 arguments"},
+		"=_xlfn.CEILING.MATH(\"X\")":     {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.CEILING.MATH(1,\"X\")":   {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.CEILING.MATH(1,2,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// _xlfn.CEILING.PRECISE
-		"=_xlfn.CEILING.PRECISE()":      {"#VALUE!", "CEILING.PRECISE requires at least 1 argument"},
-		"=_xlfn.CEILING.PRECISE(1,2,3)": {"#VALUE!", "CEILING.PRECISE allows at most 2 arguments"},
-		`=_xlfn.CEILING.PRECISE("X",2)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=_xlfn.CEILING.PRECISE(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.CEILING.PRECISE()":        {"#VALUE!", "CEILING.PRECISE requires at least 1 argument"},
+		"=_xlfn.CEILING.PRECISE(1,2,3)":   {"#VALUE!", "CEILING.PRECISE allows at most 2 arguments"},
+		"=_xlfn.CEILING.PRECISE(\"X\",2)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.CEILING.PRECISE(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// COMBIN
-		"=COMBIN()":       {"#VALUE!", "COMBIN requires 2 argument"},
-		"=COMBIN(-1,1)":   {"#VALUE!", "COMBIN requires number >= number_chosen"},
-		`=COMBIN("X",1)`:  {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=COMBIN(-1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=COMBIN()":         {"#VALUE!", "COMBIN requires 2 argument"},
+		"=COMBIN(-1,1)":     {"#VALUE!", "COMBIN requires number >= number_chosen"},
+		"=COMBIN(\"X\",1)":  {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=COMBIN(-1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// _xlfn.COMBINA
-		"=_xlfn.COMBINA()":       {"#VALUE!", "COMBINA requires 2 argument"},
-		"=_xlfn.COMBINA(-1,1)":   {"#VALUE!", "COMBINA requires number > number_chosen"},
-		"=_xlfn.COMBINA(-1,-1)":  {"#VALUE!", "COMBIN requires number >= number_chosen"},
-		`=_xlfn.COMBINA("X",1)`:  {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=_xlfn.COMBINA(-1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.COMBINA()":         {"#VALUE!", "COMBINA requires 2 argument"},
+		"=_xlfn.COMBINA(-1,1)":     {"#VALUE!", "COMBINA requires number > number_chosen"},
+		"=_xlfn.COMBINA(-1,-1)":    {"#VALUE!", "COMBIN requires number >= number_chosen"},
+		"=_xlfn.COMBINA(\"X\",1)":  {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.COMBINA(-1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// COS
-		"=COS()":    {"#VALUE!", "COS requires 1 numeric argument"},
-		`=COS("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=COS()":      {"#VALUE!", "COS requires 1 numeric argument"},
+		"=COS(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// COSH
-		"=COSH()":    {"#VALUE!", "COSH requires 1 numeric argument"},
-		`=COSH("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=COSH()":      {"#VALUE!", "COSH requires 1 numeric argument"},
+		"=COSH(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// _xlfn.COT
-		"=COT()":    {"#VALUE!", "COT requires 1 numeric argument"},
-		`=COT("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=COT(0)":   {"#DIV/0!", "#DIV/0!"},
+		"=COT()":      {"#VALUE!", "COT requires 1 numeric argument"},
+		"=COT(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=COT(0)":     {"#DIV/0!", "#DIV/0!"},
 		// _xlfn.COTH
-		"=COTH()":    {"#VALUE!", "COTH requires 1 numeric argument"},
-		`=COTH("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=COTH(0)":   {"#DIV/0!", "#DIV/0!"},
+		"=COTH()":      {"#VALUE!", "COTH requires 1 numeric argument"},
+		"=COTH(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=COTH(0)":     {"#DIV/0!", "#DIV/0!"},
 		// _xlfn.CSC
-		"=_xlfn.CSC()":    {"#VALUE!", "CSC requires 1 numeric argument"},
-		`=_xlfn.CSC("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=_xlfn.CSC(0)":   {"#DIV/0!", "#DIV/0!"},
+		"=_xlfn.CSC()":      {"#VALUE!", "CSC requires 1 numeric argument"},
+		"=_xlfn.CSC(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.CSC(0)":     {"#DIV/0!", "#DIV/0!"},
 		// _xlfn.CSCH
-		"=_xlfn.CSCH()":    {"#VALUE!", "CSCH requires 1 numeric argument"},
-		`=_xlfn.CSCH("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=_xlfn.CSCH(0)":   {"#DIV/0!", "#DIV/0!"},
+		"=_xlfn.CSCH()":      {"#VALUE!", "CSCH requires 1 numeric argument"},
+		"=_xlfn.CSCH(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.CSCH(0)":     {"#DIV/0!", "#DIV/0!"},
 		// _xlfn.DECIMAL
-		"=_xlfn.DECIMAL()":         {"#VALUE!", "DECIMAL requires 2 numeric arguments"},
-		`=_xlfn.DECIMAL("X",2)`:    {"#VALUE!", "strconv.ParseInt: parsing \"X\": invalid syntax"},
-		`=_xlfn.DECIMAL(2000,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.DECIMAL()":           {"#VALUE!", "DECIMAL requires 2 numeric arguments"},
+		"=_xlfn.DECIMAL(\"X\",2)":    {"#VALUE!", "strconv.ParseInt: parsing \"X\": invalid syntax"},
+		"=_xlfn.DECIMAL(2000,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// DEGREES
-		"=DEGREES()":    {"#VALUE!", "DEGREES requires 1 numeric argument"},
-		`=DEGREES("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=DEGREES(0)":   {"#DIV/0!", "#DIV/0!"},
+		"=DEGREES()":      {"#VALUE!", "DEGREES requires 1 numeric argument"},
+		"=DEGREES(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=DEGREES(0)":     {"#DIV/0!", "#DIV/0!"},
 		// EVEN
-		"=EVEN()":    {"#VALUE!", "EVEN requires 1 numeric argument"},
-		`=EVEN("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=EVEN()":      {"#VALUE!", "EVEN requires 1 numeric argument"},
+		"=EVEN(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// EXP
-		"=EXP()":    {"#VALUE!", "EXP requires 1 numeric argument"},
-		`=EXP("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=EXP()":      {"#VALUE!", "EXP requires 1 numeric argument"},
+		"=EXP(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// FACT
-		"=FACT()":    {"#VALUE!", "FACT requires 1 numeric argument"},
-		`=FACT("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=FACT(-1)":  {"#NUM!", "#NUM!"},
+		"=FACT()":      {"#VALUE!", "FACT requires 1 numeric argument"},
+		"=FACT(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=FACT(-1)":    {"#NUM!", "#NUM!"},
 		// FACTDOUBLE
-		"=FACTDOUBLE()":    {"#VALUE!", "FACTDOUBLE requires 1 numeric argument"},
-		`=FACTDOUBLE("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=FACTDOUBLE(-1)":  {"#NUM!", "#NUM!"},
+		"=FACTDOUBLE()":      {"#VALUE!", "FACTDOUBLE requires 1 numeric argument"},
+		"=FACTDOUBLE(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=FACTDOUBLE(-1)":    {"#NUM!", "#NUM!"},
 		// FLOOR
-		"=FLOOR()":       {"#VALUE!", "FLOOR requires 2 numeric arguments"},
-		`=FLOOR("X",-1)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=FLOOR(1,"X")`:  {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=FLOOR(1,-1)":   {"#NUM!", "invalid arguments to FLOOR"},
+		"=FLOOR()":         {"#VALUE!", "FLOOR requires 2 numeric arguments"},
+		"=FLOOR(\"X\",-1)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=FLOOR(1,\"X\")":  {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=FLOOR(1,-1)":     {"#NUM!", "invalid arguments to FLOOR"},
 		// _xlfn.FLOOR.MATH
-		"=_xlfn.FLOOR.MATH()":        {"#VALUE!", "FLOOR.MATH requires at least 1 argument"},
-		"=_xlfn.FLOOR.MATH(1,2,3,4)": {"#VALUE!", "FLOOR.MATH allows at most 3 arguments"},
-		`=_xlfn.FLOOR.MATH("X",2,3)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=_xlfn.FLOOR.MATH(1,"X",3)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=_xlfn.FLOOR.MATH(1,2,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.FLOOR.MATH()":          {"#VALUE!", "FLOOR.MATH requires at least 1 argument"},
+		"=_xlfn.FLOOR.MATH(1,2,3,4)":   {"#VALUE!", "FLOOR.MATH allows at most 3 arguments"},
+		"=_xlfn.FLOOR.MATH(\"X\",2,3)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.FLOOR.MATH(1,\"X\",3)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.FLOOR.MATH(1,2,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// _xlfn.FLOOR.PRECISE
-		"=_xlfn.FLOOR.PRECISE()":      {"#VALUE!", "FLOOR.PRECISE requires at least 1 argument"},
-		"=_xlfn.FLOOR.PRECISE(1,2,3)": {"#VALUE!", "FLOOR.PRECISE allows at most 2 arguments"},
-		`=_xlfn.FLOOR.PRECISE("X",2)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=_xlfn.FLOOR.PRECISE(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.FLOOR.PRECISE()":        {"#VALUE!", "FLOOR.PRECISE requires at least 1 argument"},
+		"=_xlfn.FLOOR.PRECISE(1,2,3)":   {"#VALUE!", "FLOOR.PRECISE allows at most 2 arguments"},
+		"=_xlfn.FLOOR.PRECISE(\"X\",2)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.FLOOR.PRECISE(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// GCD
-		"=GCD()":     {"#VALUE!", "GCD requires at least 1 argument"},
-		"=GCD(\"\")": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
-		"=GCD(-1)":   {"#VALUE!", "GCD only accepts positive arguments"},
-		"=GCD(1,-1)": {"#VALUE!", "GCD only accepts positive arguments"},
-		`=GCD("X")`:  {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=GCD()":      {"#VALUE!", "GCD requires at least 1 argument"},
+		"=GCD(\"\")":  {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
+		"=GCD(-1)":    {"#VALUE!", "GCD only accepts positive arguments"},
+		"=GCD(1,-1)":  {"#VALUE!", "GCD only accepts positive arguments"},
+		"=GCD(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// INT
-		"=INT()":    {"#VALUE!", "INT requires 1 numeric argument"},
-		`=INT("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=INT()":      {"#VALUE!", "INT requires 1 numeric argument"},
+		"=INT(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// ISO.CEILING
-		"=ISO.CEILING()":      {"#VALUE!", "ISO.CEILING requires at least 1 argument"},
-		"=ISO.CEILING(1,2,3)": {"#VALUE!", "ISO.CEILING allows at most 2 arguments"},
-		`=ISO.CEILING("X",2)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=ISO.CEILING(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ISO.CEILING()":        {"#VALUE!", "ISO.CEILING requires at least 1 argument"},
+		"=ISO.CEILING(1,2,3)":   {"#VALUE!", "ISO.CEILING allows at most 2 arguments"},
+		"=ISO.CEILING(\"X\",2)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ISO.CEILING(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// LCM
-		"=LCM()":     {"#VALUE!", "LCM requires at least 1 argument"},
-		"=LCM(-1)":   {"#VALUE!", "LCM only accepts positive arguments"},
-		"=LCM(1,-1)": {"#VALUE!", "LCM only accepts positive arguments"},
-		`=LCM("X")`:  {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=LCM()":      {"#VALUE!", "LCM requires at least 1 argument"},
+		"=LCM(-1)":    {"#VALUE!", "LCM only accepts positive arguments"},
+		"=LCM(1,-1)":  {"#VALUE!", "LCM only accepts positive arguments"},
+		"=LCM(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// LN
 		"=LN()":      {"#VALUE!", "LN requires 1 numeric argument"},
 		"=LN(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// LOG
-		"=LOG()":      {"#VALUE!", "LOG requires at least 1 argument"},
-		"=LOG(1,2,3)": {"#VALUE!", "LOG allows at most 2 arguments"},
-		`=LOG("X",1)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=LOG(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=LOG(0,0)":   {"#NUM!", "#DIV/0!"},
-		"=LOG(1,0)":   {"#NUM!", "#DIV/0!"},
-		"=LOG(1,1)":   {"#DIV/0!", "#DIV/0!"},
+		"=LOG()":        {"#VALUE!", "LOG requires at least 1 argument"},
+		"=LOG(1,2,3)":   {"#VALUE!", "LOG allows at most 2 arguments"},
+		"=LOG(\"X\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=LOG(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=LOG(0,0)":     {"#NUM!", "#DIV/0!"},
+		"=LOG(1,0)":     {"#NUM!", "#DIV/0!"},
+		"=LOG(1,1)":     {"#DIV/0!", "#DIV/0!"},
 		// LOG10
 		"=LOG10()":      {"#VALUE!", "LOG10 requires 1 numeric argument"},
 		"=LOG10(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
@@ -2632,51 +2720,51 @@ func TestCalcCellValue(t *testing.T) {
 		"=MMULT(B3:C4,A1:B2)": {"#VALUE!", "#VALUE!"},
 		"=MMULT(A1:A2,B1:B2)": {"#VALUE!", "#VALUE!"},
 		// MOD
-		"=MOD()":      {"#VALUE!", "MOD requires 2 numeric arguments"},
-		"=MOD(6,0)":   {"#DIV/0!", "MOD divide by zero"},
-		`=MOD("X",0)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=MOD(6,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=MOD()":        {"#VALUE!", "MOD requires 2 numeric arguments"},
+		"=MOD(6,0)":     {"#DIV/0!", "MOD divide by zero"},
+		"=MOD(\"X\",0)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=MOD(6,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// MROUND
-		"=MROUND()":      {"#VALUE!", "MROUND requires 2 numeric arguments"},
-		"=MROUND(1,0)":   {"#NUM!", "#NUM!"},
-		"=MROUND(1,-1)":  {"#NUM!", "#NUM!"},
-		`=MROUND("X",0)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=MROUND(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=MROUND()":        {"#VALUE!", "MROUND requires 2 numeric arguments"},
+		"=MROUND(1,0)":     {"#NUM!", "#NUM!"},
+		"=MROUND(1,-1)":    {"#NUM!", "#NUM!"},
+		"=MROUND(\"X\",0)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=MROUND(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// MULTINOMIAL
-		`=MULTINOMIAL("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=MULTINOMIAL(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// _xlfn.MUNIT
-		"=_xlfn.MUNIT()":    {"#VALUE!", "MUNIT requires 1 numeric argument"},
-		`=_xlfn.MUNIT("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=_xlfn.MUNIT(-1)":  {"#VALUE!", ""},
+		"=_xlfn.MUNIT()":      {"#VALUE!", "MUNIT requires 1 numeric argument"},
+		"=_xlfn.MUNIT(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.MUNIT(-1)":    {"#VALUE!", ""},
 		// ODD
-		"=ODD()":    {"#VALUE!", "ODD requires 1 numeric argument"},
-		`=ODD("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ODD()":      {"#VALUE!", "ODD requires 1 numeric argument"},
+		"=ODD(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// PI
 		"=PI(1)": {"#VALUE!", "PI accepts no arguments"},
 		// POWER
-		`=POWER("X",1)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=POWER(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=POWER(0,0)":   {"#NUM!", "#NUM!"},
-		"=POWER(0,-1)":  {"#DIV/0!", "#DIV/0!"},
-		"=POWER(1)":     {"#VALUE!", "POWER requires 2 numeric arguments"},
+		"=POWER(\"X\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=POWER(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=POWER(0,0)":     {"#NUM!", "#NUM!"},
+		"=POWER(0,-1)":    {"#DIV/0!", "#DIV/0!"},
+		"=POWER(1)":       {"#VALUE!", "POWER requires 2 numeric arguments"},
 		// PRODUCT
 		"=PRODUCT(\"X\")":    {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		"=PRODUCT(\"\",3,6)": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		// QUOTIENT
-		`=QUOTIENT("X",1)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=QUOTIENT(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=QUOTIENT(1,0)":   {"#DIV/0!", "#DIV/0!"},
-		"=QUOTIENT(1)":     {"#VALUE!", "QUOTIENT requires 2 numeric arguments"},
+		"=QUOTIENT(\"X\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=QUOTIENT(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=QUOTIENT(1,0)":     {"#DIV/0!", "#DIV/0!"},
+		"=QUOTIENT(1)":       {"#VALUE!", "QUOTIENT requires 2 numeric arguments"},
 		// RADIANS
-		`=RADIANS("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=RADIANS()":    {"#VALUE!", "RADIANS requires 1 numeric argument"},
+		"=RADIANS(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=RADIANS()":      {"#VALUE!", "RADIANS requires 1 numeric argument"},
 		// RAND
 		"=RAND(1)": {"#VALUE!", "RAND accepts no arguments"},
 		// RANDBETWEEN
-		`=RANDBETWEEN("X",1)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=RANDBETWEEN(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=RANDBETWEEN()":      {"#VALUE!", "RANDBETWEEN requires 2 numeric arguments"},
-		"=RANDBETWEEN(2,1)":   {"#NUM!", "#NUM!"},
+		"=RANDBETWEEN(\"X\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=RANDBETWEEN(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=RANDBETWEEN()":        {"#VALUE!", "RANDBETWEEN requires 2 numeric arguments"},
+		"=RANDBETWEEN(2,1)":     {"#NUM!", "#NUM!"},
 		// ROMAN
 		"=ROMAN()":       {"#VALUE!", "ROMAN requires at least 1 argument"},
 		"=ROMAN(1,2,3)":  {"#VALUE!", "ROMAN allows at most 2 arguments"},
@@ -2684,23 +2772,34 @@ func TestCalcCellValue(t *testing.T) {
 		"=ROMAN(\"\")":   {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		"=ROMAN(\"\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		// ROUND
-		"=ROUND()":      {"#VALUE!", "ROUND requires 2 numeric arguments"},
-		`=ROUND("X",1)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=ROUND(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ROUND()":        {"#VALUE!", "ROUND requires 2 numeric arguments"},
+		"=ROUND(\"X\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ROUND(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// ROUNDDOWN
-		"=ROUNDDOWN()":      {"#VALUE!", "ROUNDDOWN requires 2 numeric arguments"},
-		`=ROUNDDOWN("X",1)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=ROUNDDOWN(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ROUNDDOWN()":        {"#VALUE!", "ROUNDDOWN requires 2 numeric arguments"},
+		"=ROUNDDOWN(\"X\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ROUNDDOWN(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// ROUNDUP
-		"=ROUNDUP()":      {"#VALUE!", "ROUNDUP requires 2 numeric arguments"},
-		`=ROUNDUP("X",1)`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		`=ROUNDUP(1,"X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ROUNDUP()":        {"#VALUE!", "ROUNDUP requires 2 numeric arguments"},
+		"=ROUNDUP(\"X\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=ROUNDUP(1,\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		// SEARCH
+		"=SEARCH()":          {"#VALUE!", "SEARCH requires at least 2 arguments"},
+		"=SEARCH(1,A1,1,1)":  {"#VALUE!", "SEARCH allows at most 3 arguments"},
+		"=SEARCH(2,A1)":      {"#VALUE!", "#VALUE!"},
+		"=SEARCH(1,A1,\"\")": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
+		// SEARCHB
+		"=SEARCHB()":                   {"#VALUE!", "SEARCHB requires at least 2 arguments"},
+		"=SEARCHB(1,A1,1,1)":           {"#VALUE!", "SEARCHB allows at most 3 arguments"},
+		"=SEARCHB(2,A1)":               {"#VALUE!", "#VALUE!"},
+		"=SEARCHB(\"?w\",\"你好world\")": {"#VALUE!", "#VALUE!"},
+		"=SEARCHB(1,A1,\"\")":          {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		// SEC
-		"=_xlfn.SEC()":    {"#VALUE!", "SEC requires 1 numeric argument"},
-		`=_xlfn.SEC("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.SEC()":      {"#VALUE!", "SEC requires 1 numeric argument"},
+		"=_xlfn.SEC(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// _xlfn.SECH
-		"=_xlfn.SECH()":    {"#VALUE!", "SECH requires 1 numeric argument"},
-		`=_xlfn.SECH("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=_xlfn.SECH()":      {"#VALUE!", "SECH requires 1 numeric argument"},
+		"=_xlfn.SECH(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// SERIESSUM
 		"=SERIESSUM()":               {"#VALUE!", "SERIESSUM requires 4 arguments"},
 		"=SERIESSUM(\"\",2,3,A1:A4)": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
@@ -2708,22 +2807,22 @@ func TestCalcCellValue(t *testing.T) {
 		"=SERIESSUM(1,2,\"\",A1:A4)": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		"=SERIESSUM(1,2,3,A1:D1)":    {"#VALUE!", "strconv.ParseFloat: parsing \"Month\": invalid syntax"},
 		// SIGN
-		"=SIGN()":    {"#VALUE!", "SIGN requires 1 numeric argument"},
-		`=SIGN("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=SIGN()":      {"#VALUE!", "SIGN requires 1 numeric argument"},
+		"=SIGN(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// SIN
-		"=SIN()":    {"#VALUE!", "SIN requires 1 numeric argument"},
-		`=SIN("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=SIN()":      {"#VALUE!", "SIN requires 1 numeric argument"},
+		"=SIN(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// SINH
-		"=SINH()":    {"#VALUE!", "SINH requires 1 numeric argument"},
-		`=SINH("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=SINH()":      {"#VALUE!", "SINH requires 1 numeric argument"},
+		"=SINH(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// SQRT
-		"=SQRT()":    {"#VALUE!", "SQRT requires 1 numeric argument"},
-		`=SQRT("")`:  {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
-		`=SQRT("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
-		"=SQRT(-1)":  {"#NUM!", "#NUM!"},
+		"=SQRT()":      {"#VALUE!", "SQRT requires 1 numeric argument"},
+		"=SQRT(\"\")":  {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
+		"=SQRT(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=SQRT(-1)":    {"#NUM!", "#NUM!"},
 		// SQRTPI
-		"=SQRTPI()":    {"#VALUE!", "SQRTPI requires 1 numeric argument"},
-		`=SQRTPI("X")`: {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
+		"=SQRTPI()":      {"#VALUE!", "SQRTPI requires 1 numeric argument"},
+		"=SQRTPI(\"X\")": {"#VALUE!", "strconv.ParseFloat: parsing \"X\": invalid syntax"},
 		// STDEV
 		"=STDEV()":      {"#VALUE!", "STDEV requires at least 1 argument"},
 		"=STDEV(E2:E9)": {"#DIV/0!", "#DIV/0!"},
@@ -3741,6 +3840,9 @@ func TestCalcCellValue(t *testing.T) {
 		// CONCATENATE
 		"=CONCATENATE(NA())":  {"#N/A", "#N/A"},
 		"=CONCATENATE(1,1/0)": {"#DIV/0!", "#DIV/0!"},
+		// DBCS
+		"=DBCS(NA())": {"#N/A", "#N/A"},
+		"=DBCS()":     {"#VALUE!", "DBCS requires 1 argument"},
 		// EXACT
 		"=EXACT()":      {"#VALUE!", "EXACT requires 2 arguments"},
 		"=EXACT(1,2,3)": {"#VALUE!", "EXACT requires 2 arguments"},
@@ -3781,12 +3883,14 @@ func TestCalcCellValue(t *testing.T) {
 		"=LOWER(1,2)": {"#VALUE!", "LOWER requires 1 argument"},
 		// MID
 		"=MID()":            {"#VALUE!", "MID requires 3 arguments"},
-		"=MID(\"\",-1,1)":   {"#VALUE!", "#VALUE!"},
+		"=MID(\"\",0,1)":    {"#VALUE!", "#VALUE!"},
+		"=MID(\"\",1,-1)":   {"#VALUE!", "#VALUE!"},
 		"=MID(\"\",\"\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		"=MID(\"\",1,\"\")": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		// MIDB
 		"=MIDB()":            {"#VALUE!", "MIDB requires 3 arguments"},
-		"=MIDB(\"\",-1,1)":   {"#VALUE!", "#VALUE!"},
+		"=MIDB(\"\",0,1)":    {"#VALUE!", "#VALUE!"},
+		"=MIDB(\"\",1,-1)":   {"#VALUE!", "#VALUE!"},
 		"=MIDB(\"\",\"\",1)": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		"=MIDB(\"\",1,\"\")": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		// PROPER
@@ -3821,6 +3925,28 @@ func TestCalcCellValue(t *testing.T) {
 		"=SUBSTITUTE()":                    {"#VALUE!", "SUBSTITUTE requires 3 or 4 arguments"},
 		"=SUBSTITUTE(\"\",\"\",\"\",\"\")": {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
 		"=SUBSTITUTE(\"\",\"\",\"\",0)":    {"#VALUE!", "instance_num should be > 0"},
+		// TEXT
+		"=TEXT()":          {"#VALUE!", "TEXT requires 2 arguments"},
+		"=TEXT(NA(),\"\")": {"#N/A", "#N/A"},
+		"=TEXT(0,NA())":    {"#N/A", "#N/A"},
+		// TEXTAFTER
+		"=TEXTAFTER()": {"#VALUE!", "TEXTAFTER requires at least 2 arguments"},
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"hood\",1,0,0,\"\",0)": {"#VALUE!", "TEXTAFTER accepts at most 6 arguments"},
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"hood\",\"\")":         {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"hood\",1,\"\")":       {"#VALUE!", "strconv.ParseBool: parsing \"\": invalid syntax"},
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"hood\",1,0,\"\")":     {"#VALUE!", "strconv.ParseBool: parsing \"\": invalid syntax"},
+		"=TEXTAFTER(\"\",\"hood\")":                                         {"#N/A", "#N/A"},
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"hood\",0)":            {"#VALUE!", "#VALUE!"},
+		"=TEXTAFTER(\"Red riding hood's, red hood\",\"hood\",28)":           {"#VALUE!", "#VALUE!"},
+		// TEXTBEFORE
+		"=TEXTBEFORE()": {"#VALUE!", "TEXTBEFORE requires at least 2 arguments"},
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"hood\",1,0,0,\"\",0)": {"#VALUE!", "TEXTBEFORE accepts at most 6 arguments"},
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"hood\",\"\")":         {"#VALUE!", "strconv.ParseFloat: parsing \"\": invalid syntax"},
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"hood\",1,\"\")":       {"#VALUE!", "strconv.ParseBool: parsing \"\": invalid syntax"},
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"hood\",1,0,\"\")":     {"#VALUE!", "strconv.ParseBool: parsing \"\": invalid syntax"},
+		"=TEXTBEFORE(\"\",\"hood\")":                                         {"#N/A", "#N/A"},
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"hood\",0)":            {"#VALUE!", "#VALUE!"},
+		"=TEXTBEFORE(\"Red riding hood's, red hood\",\"hood\",28)":           {"#VALUE!", "#VALUE!"},
 		// TEXTJOIN
 		"=TEXTJOIN()":               {"#VALUE!", "TEXTJOIN requires at least 3 arguments"},
 		"=TEXTJOIN(\"\",\"\",1)":    {"#VALUE!", "#VALUE!"},
@@ -3865,7 +3991,7 @@ func TestCalcCellValue(t *testing.T) {
 		"=ADDRESS(1,1,0,TRUE)":              {"#NUM!", "#NUM!"},
 		"=ADDRESS(1,16385,2,TRUE)":          {"#VALUE!", "#VALUE!"},
 		"=ADDRESS(1,16385,3,TRUE)":          {"#VALUE!", "#VALUE!"},
-		"=ADDRESS(1048576,1,1,TRUE)":        {"#VALUE!", "#VALUE!"},
+		"=ADDRESS(1048577,1,1,TRUE)":        {"#VALUE!", "#VALUE!"},
 		// CHOOSE
 		"=CHOOSE()":                {"#VALUE!", "CHOOSE requires 2 arguments"},
 		"=CHOOSE(\"index_num\",0)": {"#VALUE!", "CHOOSE requires first argument of type number"},
@@ -4492,6 +4618,8 @@ func TestCalcCellValue(t *testing.T) {
 		"=YIELDMAT(\"01/01/2017\",\"06/30/2018\",\"06/01/2014\",-1,101,0)":    {"#NUM!", "YIELDMAT requires rate >= 0"},
 		"=YIELDMAT(\"01/01/2017\",\"06/30/2018\",\"06/01/2014\",1,0,0)":       {"#NUM!", "YIELDMAT requires pr > 0"},
 		"=YIELDMAT(\"01/01/2017\",\"06/30/2018\",\"06/01/2014\",5.5%,101,5)":  {"#NUM!", "invalid basis"},
+		// DISPIMG
+		"=_xlfn.DISPIMG()": {"#VALUE!", "DISPIMG requires 2 numeric arguments"},
 	}
 	for formula, expected := range mathCalcError {
 		f := prepareCalcData(cellData)
@@ -4561,14 +4689,14 @@ func TestCalcCellValue(t *testing.T) {
 	f := prepareCalcData(cellData)
 	result, err := f.CalcCellValue("Sheet1", "A1")
 	assert.NoError(t, err)
-	assert.Equal(t, "", result)
+	assert.Equal(t, "1", result)
 	// Test get calculated cell value on not exists worksheet
 	f = prepareCalcData(cellData)
 	_, err = f.CalcCellValue("SheetN", "A1")
 	assert.EqualError(t, err, "sheet SheetN does not exist")
 	// Test get calculated cell value with invalid sheet name
 	_, err = f.CalcCellValue("Sheet:1", "A1")
-	assert.EqualError(t, err, ErrSheetNameInvalid.Error())
+	assert.Equal(t, ErrSheetNameInvalid, err)
 	// Test get calculated cell value with not support formula
 	f = prepareCalcData(cellData)
 	assert.NoError(t, f.SetCellFormula("Sheet1", "A1", "=UNSUPPORT(A1)"))
@@ -4613,7 +4741,7 @@ func TestCalcWithDefinedName(t *testing.T) {
 	assert.NoError(t, f.SetCellFormula("Sheet1", "D1", "=IF(\"B1_as_string\"=defined_name1,\"YES\",\"NO\")"))
 	result, err = f.CalcCellValue("Sheet1", "D1")
 	assert.NoError(t, err)
-	assert.Equal(t, "YES", result, `=IF("B1_as_string"=defined_name1,"YES","NO")`)
+	assert.Equal(t, "YES", result, "=IF(\"B1_as_string\"=defined_name1,\"YES\",\"NO\")")
 }
 
 func TestCalcISBLANK(t *testing.T) {
@@ -4681,15 +4809,138 @@ func TestCalcCompareFormulaArg(t *testing.T) {
 	rhs = newListFormulaArg([]formulaArg{newBoolFormulaArg(true)})
 	assert.Equal(t, compareFormulaArg(lhs, rhs, newNumberFormulaArg(matchModeMaxLess), false), criteriaEq)
 
+	lhs = newListFormulaArg([]formulaArg{newNumberFormulaArg(1)})
+	rhs = newListFormulaArg([]formulaArg{newNumberFormulaArg(0)})
+	assert.Equal(t, compareFormulaArg(lhs, rhs, newNumberFormulaArg(matchModeMaxLess), false), criteriaG)
+
 	assert.Equal(t, compareFormulaArg(formulaArg{Type: ArgUnknown}, formulaArg{Type: ArgUnknown}, newNumberFormulaArg(matchModeMaxLess), false), criteriaErr)
 }
 
-func TestCalcMatchPattern(t *testing.T) {
-	assert.True(t, matchPattern("", ""))
-	assert.True(t, matchPattern("file/*", "file/abc/bcd/def"))
-	assert.True(t, matchPattern("*", ""))
-	assert.False(t, matchPattern("?", ""))
-	assert.False(t, matchPattern("file/?", "file/abc/bcd/def"))
+func TestCalcCompareFormulaArgMatrix(t *testing.T) {
+	lhs := newMatrixFormulaArg([][]formulaArg{{newEmptyFormulaArg()}})
+	rhs := newMatrixFormulaArg([][]formulaArg{{newEmptyFormulaArg(), newEmptyFormulaArg()}})
+	assert.Equal(t, compareFormulaArgMatrix(lhs, rhs, newNumberFormulaArg(matchModeMaxLess), false), criteriaL)
+
+	lhs = newMatrixFormulaArg([][]formulaArg{{newEmptyFormulaArg(), newEmptyFormulaArg()}})
+	rhs = newMatrixFormulaArg([][]formulaArg{{newEmptyFormulaArg()}})
+	assert.Equal(t, compareFormulaArgMatrix(lhs, rhs, newNumberFormulaArg(matchModeMaxLess), false), criteriaG)
+
+	lhs = newMatrixFormulaArg([][]formulaArg{{newNumberFormulaArg(1)}})
+	rhs = newMatrixFormulaArg([][]formulaArg{{newNumberFormulaArg(0)}})
+	assert.Equal(t, compareFormulaArgMatrix(lhs, rhs, newNumberFormulaArg(matchModeMaxLess), false), criteriaG)
+}
+
+func TestCalcANCHORARRAY(t *testing.T) {
+	f := NewFile()
+	assert.NoError(t, f.SetCellValue("Sheet1", "A1", 1))
+	assert.NoError(t, f.SetCellValue("Sheet1", "A2", 2))
+	formulaType, ref := STCellFormulaTypeArray, "B1:B2"
+	assert.NoError(t, f.SetCellFormula("Sheet1", "B1", "A1:A2",
+		FormulaOpts{Ref: &ref, Type: &formulaType}))
+	assert.NoError(t, f.SetCellFormula("Sheet1", "C1", "SUM(_xlfn.ANCHORARRAY($B$1))"))
+	result, err := f.CalcCellValue("Sheet1", "C1")
+	assert.NoError(t, err)
+	assert.Equal(t, "3", result)
+
+	assert.NoError(t, f.SetCellFormula("Sheet1", "C1", "SUM(_xlfn.ANCHORARRAY(\"\",\"\"))"))
+	result, err = f.CalcCellValue("Sheet1", "C1")
+	assert.EqualError(t, err, "ANCHORARRAY requires 1 numeric argument")
+	assert.Equal(t, "#VALUE!", result)
+
+	fn := &formulaFuncs{f: f, sheet: "SheetN"}
+	argsList := list.New()
+	argsList.PushBack(newStringFormulaArg("$B$1"))
+	formulaArg := fn.ANCHORARRAY(argsList)
+	assert.Equal(t, "sheet SheetN does not exist", formulaArg.Value())
+
+	fn.sheet = "Sheet1"
+	argsList = argsList.Init()
+	arg := newStringFormulaArg("$A$1")
+	arg.cellRefs = list.New()
+	arg.cellRefs.PushBack(cellRef{Row: 1, Col: 1})
+	argsList.PushBack(arg)
+	formulaArg = fn.ANCHORARRAY(argsList)
+	assert.Equal(t, ArgEmpty, formulaArg.Type)
+
+	ws, ok := f.Sheet.Load("xl/worksheets/sheet1.xml")
+	assert.True(t, ok)
+	ws.(*xlsxWorksheet).SheetData.Row[0].C[0].F = &xlsxF{}
+	formulaArg = fn.ANCHORARRAY(argsList)
+	assert.Equal(t, ArgError, formulaArg.Type)
+	assert.Equal(t, ErrParameterInvalid.Error(), formulaArg.Value())
+
+	argsList = argsList.Init()
+	arg = newStringFormulaArg("$B$1")
+	arg.cellRefs = list.New()
+	arg.cellRefs.PushBack(cellRef{Row: 1, Col: 1, Sheet: "SheetN"})
+	argsList.PushBack(arg)
+	ws.(*xlsxWorksheet).SheetData.Row[0].C[0].F = &xlsxF{Ref: "A1:A1"}
+	formulaArg = fn.ANCHORARRAY(argsList)
+	assert.Equal(t, ArgError, formulaArg.Type)
+	assert.Equal(t, "sheet SheetN does not exist", formulaArg.Value())
+}
+
+func TestCalcArrayFormula(t *testing.T) {
+	t.Run("matrix_multiplication", func(t *testing.T) {
+		f := NewFile()
+		assert.NoError(t, f.SetSheetRow("Sheet1", "A1", &[]int{1, 2}))
+		assert.NoError(t, f.SetSheetRow("Sheet1", "A2", &[]int{3, 4}))
+		formulaType, ref := STCellFormulaTypeArray, "C1:C2"
+		assert.NoError(t, f.SetCellFormula("Sheet1", "C1", "A1:A2*B1:B2",
+			FormulaOpts{Ref: &ref, Type: &formulaType}))
+		result, err := f.CalcCellValue("Sheet1", "C1")
+		assert.NoError(t, err)
+		assert.Equal(t, "2", result)
+		result, err = f.CalcCellValue("Sheet1", "C2")
+		assert.NoError(t, err)
+		assert.Equal(t, "12", result)
+	})
+	t.Run("matrix_multiplication_with_defined_name", func(t *testing.T) {
+		f := NewFile()
+		assert.NoError(t, f.SetSheetRow("Sheet1", "A1", &[]int{1, 2}))
+		assert.NoError(t, f.SetSheetRow("Sheet1", "A2", &[]int{3, 4}))
+		assert.NoError(t, f.SetDefinedName(&DefinedName{
+			Name:     "matrix",
+			RefersTo: "Sheet1!$A$1:$A$2",
+		}))
+		formulaType, ref := STCellFormulaTypeArray, "C1:C2"
+		assert.NoError(t, f.SetCellFormula("Sheet1", "C1", "matrix*B1:B2+\"1\"",
+			FormulaOpts{Ref: &ref, Type: &formulaType}))
+		result, err := f.CalcCellValue("Sheet1", "C1")
+		assert.NoError(t, err)
+		assert.Equal(t, "3", result)
+		result, err = f.CalcCellValue("Sheet1", "C2")
+		assert.NoError(t, err)
+		assert.Equal(t, "13", result)
+	})
+	t.Run("columm_multiplication", func(t *testing.T) {
+		f := NewFile()
+		assert.NoError(t, f.SetSheetRow("Sheet1", "A1", &[]int{1, 2}))
+		assert.NoError(t, f.SetSheetRow("Sheet1", "A2", &[]int{3, 4}))
+		formulaType, ref := STCellFormulaTypeArray, "C1:C1048576"
+		assert.NoError(t, f.SetCellFormula("Sheet1", "C1", "A:A*B:B",
+			FormulaOpts{Ref: &ref, Type: &formulaType}))
+		result, err := f.CalcCellValue("Sheet1", "C1")
+		assert.NoError(t, err)
+		assert.Equal(t, "2", result)
+		result, err = f.CalcCellValue("Sheet1", "C2")
+		assert.NoError(t, err)
+		assert.Equal(t, "12", result)
+	})
+	t.Run("row_multiplication", func(t *testing.T) {
+		f := NewFile()
+		assert.NoError(t, f.SetSheetRow("Sheet1", "A1", &[]int{1, 2}))
+		assert.NoError(t, f.SetSheetRow("Sheet1", "A2", &[]int{3, 4}))
+		formulaType, ref := STCellFormulaTypeArray, "A3:XFD3"
+		assert.NoError(t, f.SetCellFormula("Sheet1", "A3", "1:1*2:2",
+			FormulaOpts{Ref: &ref, Type: &formulaType}))
+		result, err := f.CalcCellValue("Sheet1", "A3")
+		assert.NoError(t, err)
+		assert.Equal(t, "3", result)
+		result, err = f.CalcCellValue("Sheet1", "B3")
+		assert.NoError(t, err)
+		assert.Equal(t, "8", result)
+	})
 }
 
 func TestCalcTRANSPOSE(t *testing.T) {
@@ -4798,9 +5049,9 @@ func TestCalcAVERAGEIF(t *testing.T) {
 		{4, 50},
 		{5, 100},
 		{1, 50},
-		{"TRUE", 200},
-		{"TRUE", 250},
-		{"FALSE", 50},
+		{true, 200},
+		{true, 250},
+		{false, 50},
 	})
 	for formula, expected := range map[string]string{
 		"=AVERAGEIF(A1:A14,\"Thursday\",B1:B14)": "150",
@@ -4948,6 +5199,14 @@ func TestCalcDatabase(t *testing.T) {
 		assert.Equal(t, expected[0], result, formula)
 		assert.EqualError(t, err, expected[1], formula)
 	}
+}
+
+func TestCalcDBCS(t *testing.T) {
+	f := NewFile(Options{CultureInfo: CultureNameZhCN})
+	assert.NoError(t, f.SetCellFormula("Sheet1", "A1", "=DBCS(\"`~·!@#$¥%…^&*()_-+=[]{}\\|;:'\"\"<,>.?/01234567890 abc ABC \uff65\uff9e\uff9f \uff74\uff78\uff7e\uff99\")"))
+	result, err := f.CalcCellValue("Sheet1", "A1")
+	assert.NoError(t, err)
+	assert.Equal(t, "\uff40\uff5e\u00b7\uff01\uff20\uff03\uff04\u00a5\uff05\u2026\uff3e\uff06\uff0a\uff08\uff09\uff3f\uff0d\uff0b\uff1d\uff3b\uff3d\uff5b\uff5d\uff3c\uff5c\uff1b\uff1a\uff07\uff02\uff1c\uff0c\uff1e\uff0e\uff1f\uff0f\uff10\uff11\uff12\uff13\uff14\uff15\uff16\uff17\uff18\uff19\uff10\u3000\uff41\uff42\uff43\u3000\uff21\uff22\uff23\u3000\uff65\uff9e\uff9f\u3000\uff74\uff78\uff7e\uff99", result)
 }
 
 func TestCalcFORMULATEXT(t *testing.T) {
@@ -5104,16 +5363,17 @@ func TestCalcCHITESTandCHISQdotTEST(t *testing.T) {
 		assert.Equal(t, expected, result, formula)
 	}
 	calcError := map[string][]string{
-		"=CHITEST()":               {"#VALUE!", "CHITEST requires 2 arguments"},
-		"=CHITEST(B3:C5,F3:F4)":    {"#N/A", "#N/A"},
-		"=CHITEST(B3:B3,F3:F3)":    {"#N/A", "#N/A"},
-		"=CHITEST(F3:F5,B4:B6)":    {"#NUM!", "#NUM!"},
-		"=CHITEST(F3:F5,C4:C6)":    {"#DIV/0!", "#DIV/0!"},
-		"=CHISQ.TEST()":            {"#VALUE!", "CHISQ.TEST requires 2 arguments"},
-		"=CHISQ.TEST(B3:C5,F3:F4)": {"#N/A", "#N/A"},
-		"=CHISQ.TEST(B3:B3,F3:F3)": {"#N/A", "#N/A"},
-		"=CHISQ.TEST(F3:F5,B4:B6)": {"#NUM!", "#NUM!"},
-		"=CHISQ.TEST(F3:F5,C4:C6)": {"#DIV/0!", "#DIV/0!"},
+		"=CHITEST()":                  {"#VALUE!", "CHITEST requires 2 arguments"},
+		"=CHITEST(MUNIT(0),MUNIT(0))": {"#VALUE!", "#VALUE!"},
+		"=CHITEST(B3:C5,F3:F4)":       {"#N/A", "#N/A"},
+		"=CHITEST(B3:B3,F3:F3)":       {"#N/A", "#N/A"},
+		"=CHITEST(F3:F5,B4:B6)":       {"#NUM!", "#NUM!"},
+		"=CHITEST(F3:F5,C4:C6)":       {"#DIV/0!", "#DIV/0!"},
+		"=CHISQ.TEST()":               {"#VALUE!", "CHISQ.TEST requires 2 arguments"},
+		"=CHISQ.TEST(B3:C5,F3:F4)":    {"#N/A", "#N/A"},
+		"=CHISQ.TEST(B3:B3,F3:F3)":    {"#N/A", "#N/A"},
+		"=CHISQ.TEST(F3:F5,B4:B6)":    {"#NUM!", "#NUM!"},
+		"=CHISQ.TEST(F3:F5,C4:C6)":    {"#DIV/0!", "#DIV/0!"},
 	}
 	for formula, expected := range calcError {
 		assert.NoError(t, f.SetCellFormula("Sheet1", "I1", formula))
@@ -5376,7 +5636,6 @@ func TestCalcXLOOKUP(t *testing.T) {
 		"=XLOOKUP()": {"#VALUE!", "XLOOKUP requires at least 3 arguments"},
 		"=XLOOKUP($C3,$C5:$C5,$C6:$C17,NA(),0,2,1)":  {"#VALUE!", "XLOOKUP allows at most 6 arguments"},
 		"=XLOOKUP($C3,$C5,$C6,NA(),0,2)":             {"#N/A", "#N/A"},
-		"=XLOOKUP(\"?\",B2:B9,C2:C9,NA(),2)":         {"#N/A", "#N/A"},
 		"=XLOOKUP($C3,$C4:$D5,$C6:$C17,NA(),0,2)":    {"#VALUE!", "#VALUE!"},
 		"=XLOOKUP($C3,$C5:$C5,$C6:$G17,NA(),0,-2)":   {"#VALUE!", "#VALUE!"},
 		"=XLOOKUP($C3,$C5:$G5,$C6:$F7,NA(),0,2)":     {"#VALUE!", "#VALUE!"},
@@ -5507,6 +5766,7 @@ func TestCalcMATCH(t *testing.T) {
 		"=MATCH(8,C1:C6,1)":        "3",
 		"=MATCH(6,B1:B6,-1)":       "1",
 		"=MATCH(10,D1:D6,-1)":      "3",
+		"=MATCH(-10,D1:D6,-1)":     "6",
 	}
 	for formula, expected := range formulaList {
 		assert.NoError(t, f.SetCellFormula("Sheet1", "E1", formula))
@@ -6024,20 +6284,42 @@ func TestCalcBetainvProbIterator(t *testing.T) {
 func TestNestedFunctionsWithOperators(t *testing.T) {
 	f := NewFile()
 	formulaList := map[string]string{
-		`=LEN("KEEP")`:                                               "4",
-		`=LEN("REMOVEKEEP") - LEN("REMOVE")`:                         "4",
-		`=RIGHT("REMOVEKEEP", 4)`:                                    "KEEP",
-		`=RIGHT("REMOVEKEEP", 10 - 6))`:                              "KEEP",
-		`=RIGHT("REMOVEKEEP", LEN("REMOVEKEEP") - 6)`:                "KEEP",
-		`=RIGHT("REMOVEKEEP", LEN("REMOVEKEEP") - LEN("REMOV") - 1)`: "KEEP",
-		`=RIGHT("REMOVEKEEP", 10 - LEN("REMOVE"))`:                   "KEEP",
-		`=RIGHT("REMOVEKEEP", LEN("REMOVEKEEP") - LEN("REMOVE"))`:    "KEEP",
+		"=LEN(\"KEEP\")":                                                   "4",
+		"=LEN(\"REMOVEKEEP\") - LEN(\"REMOVE\")":                           "4",
+		"=RIGHT(\"REMOVEKEEP\", 4)":                                        "KEEP",
+		"=RIGHT(\"REMOVEKEEP\", 10 - 6))":                                  "KEEP",
+		"=RIGHT(\"REMOVEKEEP\", LEN(\"REMOVEKEEP\") - 6)":                  "KEEP",
+		"=RIGHT(\"REMOVEKEEP\", LEN(\"REMOVEKEEP\") - LEN(\"REMOV\") - 1)": "KEEP",
+		"=RIGHT(\"REMOVEKEEP\", 10 - LEN(\"REMOVE\"))":                     "KEEP",
+		"=RIGHT(\"REMOVEKEEP\", LEN(\"REMOVEKEEP\") - LEN(\"REMOVE\"))":    "KEEP",
 	}
 	for formula, expected := range formulaList {
 		assert.NoError(t, f.SetCellFormula("Sheet1", "E1", formula))
 		result, err := f.CalcCellValue("Sheet1", "E1")
 		assert.NoError(t, err, formula)
 		assert.Equal(t, expected, result, formula)
+	}
+}
+
+func TestFormulaRawCellValueOption(t *testing.T) {
+	f := NewFile()
+	rawTest := []struct {
+		value    string
+		raw      bool
+		expected string
+	}{
+		{"=\"10e3\"", false, "10000"},
+		{"=\"10e3\"", true, "10e3"},
+		{"=\"10\" & \"e3\"", false, "10000"},
+		{"=\"10\" & \"e3\"", true, "10e3"},
+		{"=\"1111111111111111\"", false, "1.11111111111111E+15"},
+		{"=\"1111111111111111\"", true, "1111111111111111"},
+	}
+	for _, test := range rawTest {
+		assert.NoError(t, f.SetCellFormula("Sheet1", "A1", test.value))
+		val, err := f.CalcCellValue("Sheet1", "A1", Options{RawCellValue: test.raw})
+		assert.NoError(t, err)
+		assert.Equal(t, test.expected, val)
 	}
 }
 
@@ -6097,6 +6379,35 @@ func TestCalcCellResolver(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expected, result)
 	}
+	// Test calculates formula that reference date and error type cells
+	assert.NoError(t, f.SetCellValue("Sheet1", "C1", "20200208T080910.123"))
+	assert.NoError(t, f.SetCellValue("Sheet1", "C2", "2020-07-10 15:00:00.000"))
+	assert.NoError(t, f.SetCellValue("Sheet1", "C3", formulaErrorDIV))
+	ws, ok := f.Sheet.Load("xl/worksheets/sheet1.xml")
+	assert.True(t, ok)
+	ws.(*xlsxWorksheet).SheetData.Row[0].C[2].T = "d"
+	ws.(*xlsxWorksheet).SheetData.Row[0].C[2].V = "20200208T080910.123"
+	ws.(*xlsxWorksheet).SheetData.Row[1].C[2].T = "d"
+	ws.(*xlsxWorksheet).SheetData.Row[1].C[2].V = "2020-07-10 15:00:00.000"
+	ws.(*xlsxWorksheet).SheetData.Row[2].C[2].T = "e"
+	ws.(*xlsxWorksheet).SheetData.Row[2].C[2].V = formulaErrorDIV
+	for _, tbl := range [][]string{
+		{"D1", "=SUM(C1,1)", "43870.3397004977"},
+		{"D2", "=LEN(C2)", "23"},
+		{"D3", "=IFERROR(C3,TRUE)", "TRUE"},
+	} {
+		assert.NoError(t, f.SetCellFormula("Sheet1", tbl[0], tbl[1]))
+		result, err := f.CalcCellValue("Sheet1", tbl[0])
+		assert.NoError(t, err)
+		assert.Equal(t, tbl[2], result)
+	}
+	// Test calculates formula that reference invalid cell
+	assert.NoError(t, f.SetCellValue("Sheet1", "E1", "E1"))
+	assert.NoError(t, f.SetCellFormula("Sheet1", "F1", "=LEN(E1)"))
+	f.SharedStrings = nil
+	f.Pkg.Store(defaultXMLPathSharedStrings, MacintoshCyrillicCharset)
+	_, err := f.CalcCellValue("Sheet1", "F1")
+	assert.EqualError(t, err, "XML syntax error on line 1: invalid UTF-8")
 }
 
 func TestEvalInfixExp(t *testing.T) {
