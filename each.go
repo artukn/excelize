@@ -194,7 +194,7 @@ func (f *File) SetCalcedCellFormula(sheet, cell string, formula string, opts ...
 	var result string
 	token, err := f.calcCellFormula(&calcContext{
 		entry:             fmt.Sprintf("%s!%s", sheet, cell),
-		maxCalcIterations: getOptions(opts...).MaxCalcIterations,
+		maxCalcIterations: f.getOptions(opts...).MaxCalcIterations,
 		iterations:        make(map[string]uint),
 		iterationsCache:   make(map[string]formulaArg),
 	}, sheet, cell, formula)
