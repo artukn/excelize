@@ -8,7 +8,7 @@ import (
 )
 
 // eachCellStringFunc does common value extraction workflow for all each cell
-// value function. Passed function implements specific part of required logic.
+// value functions. Callback function implements specific part of required logic.
 func (f *File) eachCellStringFunc(sheet string, fn func(x *xlsxWorksheet, c *xlsxC) (bool, error)) error {
 	ws, err := f.workSheetReader(sheet)
 	if err != nil {
@@ -34,8 +34,8 @@ func (f *File) eachCellStringFunc(sheet string, fn func(x *xlsxWorksheet, c *xls
 	return nil
 }
 
-// EachCellFormula provides a function to get formula from cell by given
-// worksheet name and cell reference in spreadsheet.
+// EachCellFormula provides a function to get formulas from all cells by given
+// worksheet name.
 func (f *File) EachCellFormula(sheet string, fn func(cell, formula string) bool) error {
 	sharedFormulaCache := make(map[int]string)
 	colCache := make(map[int]int)
@@ -53,12 +53,20 @@ func (f *File) EachCellFormula(sheet string, fn func(cell, formula string) bool)
 				col, row, _ := CellNameToCoordinates(c.R)
 				dCol := col - colCache[*c.F.Si]
 				dRow := row - rowCache[*c.F.Si]
-				orig := []byte(sfc)
-				res, start := parseSharedFormula(dCol, dRow, orig)
-				if start < len(orig) {
-					res += string(orig[start:])
+				// orig := []byte(sfc)
+				// res, start := parseSharedFormula(dCol, dRow, orig)
+				// if start < len(orig) {
+				// 	res += string(orig[start:])
+				// }
+				ps := efp.ExcelParser()
+				tokens := ps.Parse(sfc)
+				for i := range tokens {
+					token := tokens[i]
+					if token.TType == efp.TokenTypeOperand && token.TSubType == efp.TokenSubTypeRange {
+						tokens[i].TValue = shiftCell(token.TValue, dCol, dRow)
+					}
 				}
-				return fn(c.R, res), nil
+				return fn(c.R, ps.Render()), nil
 			}
 			// return fn(c.R, getSharedFormula(x, *c.F.Si, c.R)), nil
 			return fn(c.R, c.F.Content), nil
@@ -67,8 +75,8 @@ func (f *File) EachCellFormula(sheet string, fn func(cell, formula string) bool)
 	})
 }
 
-// EachCellFormulaValue provides a function to get formula and value from cell by given
-// worksheet name and cell reference in spreadsheet.
+// EachCellFormulaValue provides a function to get formulas and values from all cells by given
+// worksheet name.
 func (f *File) EachCellFormulaValue(sheet string, fn func(cell, formula, value string) bool) error {
 	sharedFormulaCache := make(map[int]string)
 	colCache := make(map[int]int)
@@ -96,12 +104,21 @@ func (f *File) EachCellFormulaValue(sheet string, fn func(cell, formula, value s
 				col, row, _ := CellNameToCoordinates(c.R)
 				dCol := col - colCache[*c.F.Si]
 				dRow := row - rowCache[*c.F.Si]
-				orig := []byte(sfc)
-				res, start := parseSharedFormula(dCol, dRow, orig)
-				if start < len(orig) {
-					res += string(orig[start:])
+				// orig := []byte(sfc)
+				// res, start := parseSharedFormula(dCol, dRow, orig)
+				// if start < len(orig) {
+				// 	res += string(orig[start:])
+				// }
+				// return fn(c.R, res, val), nil
+				ps := efp.ExcelParser()
+				tokens := ps.Parse(sfc)
+				for i := range tokens {
+					token := tokens[i]
+					if token.TType == efp.TokenTypeOperand && token.TSubType == efp.TokenSubTypeRange {
+						tokens[i].TValue = shiftCell(token.TValue, dCol, dRow)
+					}
 				}
-				return fn(c.R, res, val), nil
+				return fn(c.R, ps.Render(), val), nil
 			}
 		}
 		return fn(c.R, c.F.Content, val), nil
